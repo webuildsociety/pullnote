@@ -14,9 +14,9 @@ This is for you if:
 
 ## Getting started with NPM
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
-`npm install pullnote`
+`npm install @pullnote/client`
 ```js
-import { PullnoteClient } from '@pullnote/content';
+import { PullnoteClient } from '@pullnote/client';
 
 const pn = new PullnoteClient(env.PULLNOTE_KEY);
 
