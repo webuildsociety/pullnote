@@ -1,5 +1,5 @@
 # Pullnote
-Cloud-based headless content API to create and retrieve markdown programatically (with human text editor at pullnote.com to save development of a project CMS)
+Cloud-based headless content API to create and retrieve markdown programatically (with simple human text editor at pullnote.com to save building one in each project)
 
 ## Premise
 Always creating sites and not wanting to install Wordpress etc, I principally wanted somewhere outside of my application database to store/retrieve content from.
