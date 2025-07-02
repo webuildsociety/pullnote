@@ -1,1 +1,1 @@
-export { PullnoteClient } from './PullnoteClient'; 
+export { PullnoteClient } from './PullnoteClient.js'; 

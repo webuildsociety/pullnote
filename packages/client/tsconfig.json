@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2019",
-    "module": "ESNext",
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["vitest", "node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   },
   "include": ["src/**/*"]
 } 
