@@ -2,15 +2,15 @@
 Cloud-based headless content API to create and retrieve markdown programatically (with simple human text editor at pullnote.com to save building one in each project)
 
 ## Premise
-Always creating sites and not wanting to install Wordpress etc, I principally wanted somewhere outside of my application database to store/retrieve content from.
+Always creating sites and not wanting to install Wordpress etc, this principally provides an outside database to store/retrieve content from.
 This is for you if you:
-- don't want to create (or configure) a CMS every time
-- don't want to handle auth just for content writers
-- don't want to deal with javascript editors
+- **don't** want to create (or configure) a CMS every time
+- **don't** want to handle extra admin logins just for content writers
+- **don't** want to deal with javascript editors
 
-- DO want programmable / API access to your content to create / retrieve
-- DO want an MCP server so that you can instruct your favourite LLM from e.g. Cursor or Claude Code to smash content in for you
-- DO want prompt options for AI generated placeholder content and images
+- **DO** want programmable / API access to your content
+- **DO** want an MCP server so that you can instruct your favourite LLM from e.g. Cursor or Claude Code to smash content in / update for you
+- **DO** want prompt options for AI generated placeholder content and images
 
 ## Getting started with NPM
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
@@ -48,13 +48,28 @@ POST JSON to the same URL with fields:
 }
 ```
 
-## Getting started with the AI MCP server for LLM Integration
+## MCP server for LLM Integration
 Pullnote exposes an MCP-compatible API endpoint for LLM tools such as Cursor, Claude Code etc to allow AI to create, retrieve, update, delete, and list notes programmatically.
 
 ### Endpoint
 
 ```
 POST https://api.pullnote.com/mcp
+```
+
+### Adding Pullnote MCP Server to Cursor
+- Navigate to Settings... > Cursor Settings > Tools & Integrations > New MCP Server
+- Paste the following (or add to your remoteServers list if already there)
+```json
+{
+	"mcpServers": {
+	},
+  "remoteServers": {
+    "pullnote-api": {
+      "url": "https://api.pullnote.com/mcp?key=[YOUR_PULLNOTE_API_KEY]"
+    }
+  }
+}
 ```
 
 ### Authentication
