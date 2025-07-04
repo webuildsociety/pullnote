@@ -3,14 +3,14 @@ Cloud-based headless content API to create and retrieve markdown programatically
 
 ## Premise
 Always creating sites and not wanting to install Wordpress etc, I principally wanted somewhere outside of my application database to store/retrieve content from.
-This is for you if:
-- Don't want to create (or configure) a CMS
-- Don't want to handle auth just for content writers
-- Don't want to deal with javascript editors
+This is for you if you:
+- don't want to create (or configure) a CMS every time
+- don't want to handle auth just for content writers
+- don't want to deal with javascript editors
 
-- DO want programmable / API access to your content - to create / retrieve
+- DO want programmable / API access to your content to create / retrieve
 - DO want an MCP server so that you can instruct your favourite LLM from e.g. Cursor or Claude Code to smash content in for you
-- DO want prompt options for content and images
+- DO want prompt options for AI generated placeholder content and images
 
 ## Getting started with NPM
 Sign up for a free API key from [https://pullnote.com](pullnote.com)

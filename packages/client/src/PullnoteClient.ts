@@ -26,15 +26,12 @@ export class PullnoteClient {
 
   async get(slug: string, format: string = '') {
     if (this._cacheDoc && this._cacheDoc.slug === slug && (!format || this._cacheDoc.format === format)) {
-      console.log("PP (b) using cached:", this._cacheDoc);
       return this._cacheDoc;
     }
-    console.log("PP (c) clearing cache");
-    this._cacheDoc = undefined;
+    this._clearCache();
     if (format && format != 'md') {
       slug = slug.includes('?') ? slug + '&format=' + format : slug + '?format=' + format;
     }
-    console.log("PP (d):", slug);
     const doc = await this._request('GET', slug);
     this._cacheDoc = doc;
     return doc;
@@ -42,17 +39,24 @@ export class PullnoteClient {
 
   async add(content: Note) {
     this._clearCache();
-    return this._request('POST', `/add`, content);
+    this._cacheDoc = await this._request('POST', `/add`, content);
+    return this._cacheDoc;
   }
 
-  async update(slug: string, content: Partial<Note>) {
-    this._clearCache();
-    return this._request('PUT', `/${slug}`, content);
+  async update(changes: Partial<Note>, slug?: string) {
+    slug = slug || this._cacheDoc?._slug;
+    if (!slug) throw new Error("No current document. Pass url slug as second parameter");
+    console.log("PP (a) update title:", changes?.title, "on", slug);
+    this._cacheDoc = await this._request('PATCH', slug, changes);
+    console.log("PP (b) updated title:", this._cacheDoc?.title, "on", this._cacheDoc?._slug);
+    return this._cacheDoc;
   }
 
   async remove(slug: string) {
+    slug = slug || this._cacheDoc?._slug;
+    if (!slug) throw new Error("No current document. Pass url slug as second parameter");
+    await this._request('DELETE', `/${slug}`);
     this._clearCache();
-    return this._request('DELETE', `/${slug}`);
   }
 
   async getMd(slug: string) {
@@ -61,7 +65,6 @@ export class PullnoteClient {
   }
 
   async getHtml(slug: string) {
-    console.log("PP (a) getHtml with slug:", slug);
     const doc = await this.get(slug, 'html');
     return doc.content;
   }
@@ -94,7 +97,6 @@ export class PullnoteClient {
     };
 
     // For GET requests, add token as query param
-    console.log("PP (e)", method, url, "using", this.apiKey);
     if (method === 'GET') {
       url = url.includes('?') ? url + '&token=' + this.apiKey : url + '?token=' + this.apiKey;
     } else {
@@ -110,11 +112,10 @@ export class PullnoteClient {
       options.body = JSON.stringify(body);
     }
     try {
+      console.log("PP (c) fetching:", url);
       const res = await fetch(url, options);
-      console.log("Pullnote package retrieved from API:", res);
       if (!res.ok) throw new Error(await res.text());
       var data = await res.json();
-      console.log("Package data:", data);
       return data;
     } catch (error) {
       console.error("Pullnote package error:", error);
