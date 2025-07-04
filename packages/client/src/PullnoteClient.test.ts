@@ -4,7 +4,6 @@ import { PullnoteClient } from './PullnoteClient.js';
 const TEST_KEY = process.env.PULLNOTE_TEST_KEY;
 const TEST_NOTE_SLUG = 'pullnote-npm-package-test-note-' + Math.random().toString(36).slice(2, 10);
 
-console.log('TEST_KEY', TEST_KEY);
 let pn: PullnoteClient;
 let addedNote: any;
 

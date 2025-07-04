@@ -46,9 +46,7 @@ export class PullnoteClient {
   async update(changes: Partial<Note>, slug?: string) {
     slug = slug || this._cacheDoc?._slug;
     if (!slug) throw new Error("No current document. Pass url slug as second parameter");
-    console.log("PP (a) update title:", changes?.title, "on", slug);
     this._cacheDoc = await this._request('PATCH', slug, changes);
-    console.log("PP (b) updated title:", this._cacheDoc?.title, "on", this._cacheDoc?._slug);
     return this._cacheDoc;
   }
 
@@ -112,7 +110,6 @@ export class PullnoteClient {
       options.body = JSON.stringify(body);
     }
     try {
-      console.log("PP (c) fetching:", url);
       const res = await fetch(url, options);
       if (!res.ok) throw new Error(await res.text());
       var data = await res.json();

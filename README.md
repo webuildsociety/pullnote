@@ -31,7 +31,6 @@ await pn.add({
 });
 
 var htmlContent = await pn.getHtml('/my-content-page');
-console.log(htmlContent);
 ```
 
 ## Getting started with REST API
@@ -49,4 +48,108 @@ POST JSON to the same URL with fields:
 }
 ```
 
-## Getting started with the AI MCP server
+## Getting started with the AI MCP server for LLM Integration
+Pullnote exposes an MCP-compatible API endpoint for LLM tools such as Cursor, Claude Code etc to allow AI to create, retrieve, update, delete, and list notes programmatically.
+
+### Endpoint
+
+```
+POST https://api.pullnote.com/mcp
+```
+
+### Authentication
+- All requests require a valid `pullnote_key` in the request body.
+- You can get a free one from [https://pullnote.com](https://pullnote.com)
+
+### Request Format
+Send a JSON body with the following fields:
+
+- `action`: One of `create`, `retrieve`, `update`, `delete`, `list`
+- `tool`: Must be `note` (future tools may be supported)
+- `params`: Object with parameters for the action (see below)
+- `pullnote_key`: Your project API key
+
+#### Example: Create a Note
+```json
+{
+  "action": "create",
+  "tool": "note",
+  "params": {
+    "title": "Interesting ducks",
+    "content": "Pre-written content e.g. An article about interesting ducks.",
+    "img": "https://your-domain.com/pre-existing-article-image.png",
+    "prompt": "Optional AI prompt to auto-generate content e.g. Write an interesting article about ducks",
+    "imgPrompt": "Optional AI prompt to auto-generate an article image"
+  },
+  "pullnote_key": "YOUR_KEY_HERE"
+}
+```
+
+#### Example: Retrieve a Note
+```json
+{
+  "action": "retrieve",
+  "tool": "note",
+  "params": {
+    "slug": "interesting-ducks"
+  },
+  "pullnote_key": "YOUR_KEY_HERE"
+}
+```
+
+#### Example: Update a Note
+```json
+{
+  "action": "update",
+  "tool": "note",
+  "params": {
+    "slug": "interesting-ducks",
+    "content": "Updated content.",
+    "img": "https://your-domain.com/a-new-image.png",
+    "prompt": "Optional AI prompt to re-generate content"
+  },
+  "pullnote_key": "YOUR_KEY_HERE"
+}
+```
+
+#### Example: Delete a Note
+```json
+{
+  "action": "delete",
+  "tool": "note",
+  "params": {
+    "slug": "interesting-ducks"
+  },
+  "pullnote_key": "YOUR_KEY_HERE"
+}
+```
+
+#### Example: List Notes
+```json
+{
+  "action": "list",
+  "tool": "note",
+  "params": {},
+  "pullnote_key": "YOUR_KEY_HERE"
+}
+```
+
+### Response Format
+All successful responses return:
+```json
+{
+  "ok": true,
+  "result": { ... }
+}
+```
+- The `result` field contains the note object, a list of notes, or `{ ok: true }` for deletions.
+
+### Error Handling
+- Missing or invalid `pullnote_key` returns 401/403.
+- Unknown actions or tools return 400.
+- Not found errors return 404.
+- All errors are returned as JSON with an appropriate HTTP status code.
+
+### Notes
+- The MCP endpoint is designed for programmatic access by LLM tools and external services.
+- Free accounts are limited to 50 generation requests / mth and 1k notes
