@@ -4,7 +4,7 @@ export type Note = {
   title?: string;
   description?: string;
   picture?: string;
-  img?: string;
+  imgUrl?: string;
   prompt?: string;
   imgPrompt?: string;
   content_md?: string;
@@ -14,25 +14,29 @@ export type Note = {
   params?: Record<string, any>;
 };
 
+// API should not render HTML
+// Should cache notes here and sort ourselves
 export class PullnoteClient {
   private apiKey: string;
   private baseUrl: string;
   private _cacheDoc?: any;
+  private _cacheList?: any;
 
   constructor(apiKey: string, baseUrl = 'https://api.pullnote.com') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
   }
 
-  async get(slug: string, format: string = '') {
-    if (this._cacheDoc && this._cacheDoc.slug === slug && (!format || this._cacheDoc.format === format)) {
+  async get(path: string, format: string = '') {
+    if (!path) path = "/"; // Root path
+    if (this._cacheDoc && this._cacheDoc.path === path && (!format || this._cacheDoc.format === format)) {
       return this._cacheDoc;
     }
     this._clearCache();
     if (format && format != 'md') {
-      slug = slug.includes('?') ? slug + '&format=' + format : slug + '?format=' + format;
+      path = (path.includes('?')) ? path + '&format=' + format : path + '?format=' + format;
     }
-    const doc = await this._request('GET', slug);
+    const doc = await this._request('GET', path);
     this._cacheDoc = doc;
     return doc;
   }
@@ -43,42 +47,46 @@ export class PullnoteClient {
     return this._cacheDoc;
   }
 
-  async update(changes: Partial<Note>, slug?: string) {
-    slug = slug || this._cacheDoc?._slug;
-    if (!slug) throw new Error("No current document. Pass url slug as second parameter");
-    this._cacheDoc = await this._request('PATCH', slug, changes);
+  async update(changes: Partial<Note>, path?: string) {
+    path = path || this._cacheDoc?._path;
+    if (!path) throw new Error("No current document. Pass url path as second parameter");
+    this._cacheDoc = await this._request('PATCH', path, changes);
     return this._cacheDoc;
   }
 
-  async remove(slug: string) {
-    slug = slug || this._cacheDoc?._slug;
-    if (!slug) throw new Error("No current document. Pass url slug as second parameter");
-    await this._request('DELETE', `/${slug}`);
+  async remove(path: string) {
+    path = path || this._cacheDoc?._path;
+    if (!path) throw new Error("No current document. Pass url path as second parameter");
+    await this._request('DELETE', path);
     this._clearCache();
   }
 
-  async getMd(slug: string) {
-    const doc = await this.get(slug, 'md');
+  async clear() {
+    this._clearCache();
+  }
+
+  async getMd(path: string) {
+    const doc = await this.get(path, 'md');
     return doc.content;
   }
 
-  async getHtml(slug: string) {
-    const doc = await this.get(slug, 'html');
+  async getHtml(path: string) {
+    const doc = await this.get(path, 'html');
     return doc.content;
   }
 
-  async getTitle(slug: string) {
-    const doc = await this.get(slug);
+  async getTitle(path: string) {
+    const doc = await this.get(path);
     return doc.title;
   }
 
-  async getImage(slug: string) {
-    const doc = await this.get(slug);
-    return doc.img;
+  async getImage(path: string) {
+    const doc = await this.get(path);
+    return doc.imgUrl;
   }
 
-  async getHead(slug: string) {
-    const doc = await this.get(slug);
+  async getHead(path: string) {
+    const doc = await this.get(path);
     return doc.head;
   }
 
@@ -87,8 +95,29 @@ export class PullnoteClient {
     return this._request('POST', `/generate`, { prompt });
   }
 
+  async list(sort: string = 'created', sortDirection: number = 0) {
+    if (!this._cacheList) {
+      // Fetch from server in created order and cache
+      this._cacheList = await this._request('GET', `/pullnote_list?sort=created&sortDirection=-1`);
+    }
+    if (!this._cacheList?.length) return [];
+    // Always sort the cached list in JS
+    let sorted = [...(this._cacheList || [])];
+    if (sort) {
+      sorted.sort((a, b) => {
+        if (a[sort] === undefined && b[sort] === undefined) return 0;
+        if (a[sort] === undefined) return 1;
+        if (b[sort] === undefined) return -1;
+        if (a[sort] < b[sort]) return sortDirection === -1 ? 1 : -1;
+        if (a[sort] > b[sort]) return sortDirection === -1 ? -1 : 1;
+        return 0;
+      });
+    }
+    return sorted;
+  }
+
   private async _request(method: string, path: string, body?: any) {
-    if (path.startsWith('/')) path = path.slice(1);
+    if (path && path.startsWith('/')) path = path.slice(1);
     let url = `${this.baseUrl}/${path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -122,6 +151,7 @@ export class PullnoteClient {
 
   private _clearCache() {
     this._cacheDoc = undefined;
+    this._cacheList = undefined;
   }
 
 }

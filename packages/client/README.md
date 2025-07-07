@@ -18,7 +18,7 @@ const pn = new PullnoteClient(process.env.PULLNOTE_KEY);
 await pn.add({
   title: 'My Content Page',
   content: 'This is my content page',
-  slug: 'my-content-page',
+  path: 'my-content-page',
   prompt: 'Write a short piece about the importance of the color blue'
 });
 

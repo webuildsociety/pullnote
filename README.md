@@ -1,16 +1,12 @@
 # Pullnote
-Cloud-based headless content API to create and retrieve markdown programatically (with simple human text editor at pullnote.com to save building one in each project)
+Cloud-based headless API to save building a content backend for each project.
 
-## Premise
-Always creating sites and not wanting to install Wordpress etc, this principally provides an outside database to store/retrieve content from.
+This principally provides an outside database to store/retrieve content using NPM, REST or an AI MCP Server tool; plus a simple human editor at pullnote.com (desktop app coming soon).
+
 This is for you if you:
-- **don't** want to create (or configure) a CMS every time
-- **don't** want to handle extra admin logins just for content writers
-- **don't** want to deal with javascript editors
-
-- **DO** want programmable / API access to your content
-- **DO** want an MCP server so that you can instruct your favourite LLM from e.g. Cursor or Claude Code to smash content in / update for you
-- **DO** want prompt options for AI generated placeholder content and images
+- want simple, fast, programmable / API access to content
+- want to allow LLMs to create/save content for you (e.g. Cursor or Claude Code can smash content in / update for you via our MCP server)
+- don't want to build your own content area / auth / wysiwyg backend
 
 ## Getting started with NPM
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
@@ -22,31 +18,40 @@ import { PullnoteClient } from '@pullnote/client';
 
 const pn = new PullnoteClient(env.PULLNOTE_KEY);
 
-// get, add, update, remove, getMd, getHtml, getTitle, getImage, getHead, generate
+// Available functions: get, add, update, remove, getMd, getHtml, getTitle, getImage, getHead, generate, list
 await pn.add({
-    title: 'My Content Page',
-    content: 'This is my content page',
-    slug: 'my-content-page',
+    title: 'A Kinda Blue',
+    content: 'This is my content page about the colour blue.',
+    path: 'all-about-being-blue',
     prompt: 'Write a short piece about the importance of the color blue'
 });
 
-var htmlContent = await pn.getHtml('/my-content-page');
+var htmlContent = await pn.getHtml('all-about-being-blue');
 ```
 
+## Pullnote LLM
+Pullnote also offers the use of our own LLM to generate placeholder content and images - just hit the endpoints with `prompt` instead of `content`
+
+
 ## Getting started with REST API
+Alternatively, you can hit the REST API directly.
 
 ### Retrieving content
-Switch your domain on any URL for api.pullnote.com e.g.
-https://youdomain.com/my-favourite-page => https://api.pullnote.com/my-favourite-page?token=[PULLNOTE_KEY]
+Switch your domain (on any URL) for api.pullnote.com e.g.
+https://youdomain.com/my-favourite-page => https://api.pullnote.com/my-favourite-page?token=[PULLNOTE_KEY]&format=html
 
 ### Creating content
 POST JSON to the same URL with fields:
 ```json
 {
   title: "My lovely content page",
-  md: "# Fabulous page this"
+  content: "# Fabulous page this"
 }
 ```
+
+### Deleting content
+Send a HTTP `DELETE` request to your content URL, e.g.:
+`DELETE https://api.pullnote.com/my-favourite-page?token=[PULLNOTE_KEY]`
 
 ## MCP server for LLM Integration
 Pullnote exposes an MCP-compatible API endpoint for LLM tools such as Cursor, Claude Code etc to allow AI to create, retrieve, update, delete, and list notes programmatically.
@@ -92,7 +97,7 @@ Send a JSON body with the following fields:
   "params": {
     "title": "Interesting ducks",
     "content": "Pre-written content e.g. An article about interesting ducks.",
-    "img": "https://your-domain.com/pre-existing-article-image.png",
+    "imgUrl": "https://your-domain.com/pre-existing-article-image.png",
     "prompt": "Optional AI prompt to auto-generate content e.g. Write an interesting article about ducks",
     "imgPrompt": "Optional AI prompt to auto-generate an article image"
   },
@@ -106,7 +111,7 @@ Send a JSON body with the following fields:
   "action": "retrieve",
   "tool": "note",
   "params": {
-    "slug": "interesting-ducks"
+    "path": "interesting-ducks"
   },
   "pullnote_key": "YOUR_KEY_HERE"
 }
@@ -118,9 +123,9 @@ Send a JSON body with the following fields:
   "action": "update",
   "tool": "note",
   "params": {
-    "slug": "interesting-ducks",
+    "path": "interesting-ducks",
     "content": "Updated content.",
-    "img": "https://your-domain.com/a-new-image.png",
+    "imgUrl": "https://your-domain.com/a-new-image.png",
     "prompt": "Optional AI prompt to re-generate content"
   },
   "pullnote_key": "YOUR_KEY_HERE"
@@ -133,7 +138,7 @@ Send a JSON body with the following fields:
   "action": "delete",
   "tool": "note",
   "params": {
-    "slug": "interesting-ducks"
+    "path": "interesting-ducks"
   },
   "pullnote_key": "YOUR_KEY_HERE"
 }
@@ -168,3 +173,24 @@ All successful responses return:
 ### Notes
 - The MCP endpoint is designed for programmatic access by LLM tools and external services.
 - Free accounts are limited to 50 generation requests / mth and 1k notes
+
+## Testing
+Use `npm run test` to test code changes to this repository in isolation.
+
+Pre-publishing, hook up a local project to your changes:
+```sh
+# In THIS project directory
+npm link
+# In the consuming project directory
+npm link @pullnote/client
+# Once you are finished testing in the consuming project
+npm unlink @pullnote/client
+```
+## Publishing
+- Update the package.json version number
+```sh
+npm login
+npm run build
+npm pack
+npm publish --access public
+```

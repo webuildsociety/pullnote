@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PullnoteClient } from './PullnoteClient.js';
 
 const TEST_KEY = process.env.PULLNOTE_TEST_KEY;
-const TEST_NOTE_SLUG = 'pullnote-npm-package-test-note-' + Math.random().toString(36).slice(2, 10);
+const TEST_NOTE_PATH = 'pullnote-npm-package-test-note-' + Math.random().toString(36).slice(2, 10);
 
 let pn: PullnoteClient;
 let addedNote: any;
@@ -16,7 +16,7 @@ describe('PullnoteClient', () => {
       title: 'Test Note',
       description: 'A note created by a test',
       content_md: 'Initial content',
-      params: { slug: TEST_NOTE_SLUG },
+      params: { path: TEST_NOTE_PATH },
     };
     addedNote = await pn.add(note);
   });
@@ -25,7 +25,7 @@ describe('PullnoteClient', () => {
     if (!TEST_KEY) return;
     // Remove the note after all tests
     try {
-      await pn.remove(TEST_NOTE_SLUG);
+      await pn.remove(TEST_NOTE_PATH);
     } catch (e) {
       // Ignore errors if already removed
     }
@@ -37,7 +37,7 @@ describe('PullnoteClient', () => {
       return;
     }
     expect(addedNote).toHaveProperty('title', 'Test Note');
-    expect(addedNote).toHaveProperty('slug', TEST_NOTE_SLUG);
+    expect(addedNote).toHaveProperty('path', TEST_NOTE_PATH);
   });
 
   it('should get a note', async () => {
@@ -45,9 +45,9 @@ describe('PullnoteClient', () => {
       console.warn('No PULLNOTE_TEST_TOKEN set, skipping test.');
       return;
     }
-    const fetched = await pn.get(TEST_NOTE_SLUG);
+    const fetched = await pn.get(TEST_NOTE_PATH);
     expect(fetched).toHaveProperty('title', 'Test Note');
-    expect(fetched).toHaveProperty('slug', TEST_NOTE_SLUG);
+    expect(fetched).toHaveProperty('path', TEST_NOTE_PATH);
   });
 
   it('should update a note', async () => {
@@ -55,7 +55,7 @@ describe('PullnoteClient', () => {
       console.warn('No PULLNOTE_TEST_TOKEN set, skipping test.');
       return;
     }
-    const updated = await pn.update({ title: 'Updated Test Note' }, TEST_NOTE_SLUG);
+    const updated = await pn.update({ title: 'Updated Test Note' }, TEST_NOTE_PATH);
     expect(updated).toHaveProperty('title', 'Updated Test Note');
   });
 
@@ -64,10 +64,10 @@ describe('PullnoteClient', () => {
       console.warn('No PULLNOTE_TEST_TOKEN set, skipping test.');
       return;
     }
-    await pn.remove(TEST_NOTE_SLUG);
+    await pn.remove(TEST_NOTE_PATH);
     let error = null;
     try {
-      await pn.get(TEST_NOTE_SLUG);
+      await pn.get(TEST_NOTE_PATH);
     } catch (e) {
       error = e;
     }
@@ -77,7 +77,7 @@ describe('PullnoteClient', () => {
       title: 'Test Note',
       description: 'A note created by a test',
       content_md: 'Initial content',
-      params: { slug: TEST_NOTE_SLUG },
+      params: { path: TEST_NOTE_PATH },
     });
   });
 }); 
