@@ -11,7 +11,7 @@ export type Note = {
   created?: string;
   modified?: string;
   author?: string;
-  params?: Record<string, any>;
+  data?: Record<string, any>;
 };
 
 // API should not render HTML
@@ -25,6 +25,11 @@ export class PullnoteClient {
   constructor(apiKey: string, baseUrl = 'https://api.pullnote.com') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
+  }
+
+  async exists(path: string) {
+    var res = await this._request('GET', path, { ping: 1});
+    return res.found;
   }
 
   async get(path: string, format: string = '') {
@@ -41,15 +46,16 @@ export class PullnoteClient {
     return doc;
   }
 
-  async add(content: Note) {
+  // Note: path will overwrite any note.path passed
+  async add(path: string, note: Note) {
     this._clearCache();
-    this._cacheDoc = await this._request('POST', `/add`, content);
+    this._cacheDoc = await this._request('POST', path, note);
     return this._cacheDoc;
   }
 
-  async update(changes: Partial<Note>, path?: string) {
-    path = path || this._cacheDoc?._path;
-    if (!path) throw new Error("No current document. Pass url path as second parameter");
+  // Note: move a note by passing a different path in changes.path
+  async update(path: string, changes: Partial<Note>) {
+    this._clearCache();
     this._cacheDoc = await this._request('PATCH', path, changes);
     return this._cacheDoc;
   }
@@ -59,6 +65,10 @@ export class PullnoteClient {
     if (!path) throw new Error("No current document. Pass url path as second parameter");
     await this._request('DELETE', path);
     this._clearCache();
+  }
+
+  async delete(path: string) {
+    return this.remove(path);
   }
 
   async clear() {
@@ -77,7 +87,12 @@ export class PullnoteClient {
 
   async getTitle(path: string) {
     const doc = await this.get(path);
-    return doc.title;
+    return doc?.title ?? "";
+  }
+
+  async getData(path: string) {
+    const doc = await this.get(path);
+    return doc?.data ?? {};
   }
 
   async getImage(path: string) {
@@ -87,22 +102,43 @@ export class PullnoteClient {
 
   async getHead(path: string) {
     const doc = await this.get(path);
-    return doc.head;
+    return {
+      title: doc?.title ?? "",
+      description: doc?.description ?? "",
+      imgUrl: doc?.imgUrl ?? ""
+    }
   }
 
-  async generate(prompt: string) {
+  async generate(path: string, prompt: string, imgPrompt?: string) {
     this._clearCache();
-    return this._request('POST', `/generate`, { prompt });
+    return this._request('POST', path, { prompt, imgPrompt });
   }
 
-  async list(sort: string = 'created', sortDirection: number = 0) {
+    // Note: "" gets ALL notes, "/" just root level ones
+  async list(path: string, sort: string = 'created', sortDirection: number = 0) {
     if (!this._cacheList) {
-      // Fetch from server in created order and cache
-      this._cacheList = await this._request('GET', `/pullnote_list?sort=created&sortDirection=-1`);
+      // Fetch all note summaries from server in created order and cache
+      this._cacheList = await this._request('GET', `/?list=1&sort=created&sortDirection=-1`);
     }
     if (!this._cacheList?.length) return [];
+    // Whittle the cache list down to the path requested
+    if (path) {
+      // Only include notes directly under the given path (not deeper subfolders)
+      const base = path.endsWith("/") ? path : path + "/";
+      var noteList = this._cacheList.filter((item: any) => {
+        if (!item?.path || !item.path.startsWith(base)) {
+          return false;
+        }
+        // Get the rest of the path after the base
+        const rest = item.path.slice(base.length);
+        // Only include if there are no further slashes in the rest (i.e., not a subfolder)
+        return rest.length > 0 && !rest.includes("/");
+      });
+    } else {
+      var noteList = this._cacheList;
+    }
     // Always sort the cached list in JS
-    let sorted = [...(this._cacheList || [])];
+    let sorted = [...(noteList || [])];
     if (sort) {
       sorted.sort((a, b) => {
         if (a[sort] === undefined && b[sort] === undefined) return 0;
@@ -116,6 +152,54 @@ export class PullnoteClient {
     return sorted;
   }
 
+  async getSitemap(
+    siteUrl: string,
+    staticPages: (string | { path: string; modified?: string })[] = []
+  ) {
+    // Get all notes
+    var notes: { path: string, modified: string }[] = [];
+    // Start with static pages
+    staticPages.forEach((path: string | { path: string; modified?: string }) => {
+      if (typeof path !== "string") {
+        if (typeof path === "object" && path?.path) {
+          notes.push({
+            path: path.path,
+            modified: path?.modified ?? new Date().toISOString().split('T')[0]
+          });
+        } else {
+          console.warn("Sitemap static path passed is not a string or object with path, modified properties:", path);
+        }
+      } else {
+        notes.push({
+          path: path.trim(),
+          modified: new Date().toISOString().split('T')[0]
+        });
+      }
+    });
+    // Add in dynamic pages
+    const dynamicPages = await this.list("");
+    // Convert UNIX timestamps to ISO string of just date e.g. 2025-08-08
+    dynamicPages.forEach((note: any) => {
+      notes.push({
+        path: note.path,
+        modified: new Date(note.modified * 1000).toISOString().split('T')[0]
+      });
+    });
+    // Build the XML
+    var xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    notes.forEach((note: any) => {
+      var path = (!note?.path) ? "/" : note.path;
+      if (!path.startsWith("/")) path = "/" + path;
+      xml += `  <url>\n    <loc>${siteUrl}${path}</loc>\n    <lastmod>${note.modified}</lastmod>\n  </url>\n`;
+    });
+    xml += `</urlset>\n`;
+    // Return the XML
+    return xml;
+  }
+
+  // Internal functions
+  // ----------------------------
+
   private async _request(method: string, path: string, body?: any) {
     if (path && path.startsWith('/')) path = path.slice(1);
     let url = `${this.baseUrl}/${path}`;
@@ -123,9 +207,12 @@ export class PullnoteClient {
       'Content-Type': 'application/json',
     };
 
-    // For GET requests, add token as query param
+    // For GET requests, add token and data as query param
     if (method === 'GET') {
       url = url.includes('?') ? url + '&token=' + this.apiKey : url + '?token=' + this.apiKey;
+      if (body) {
+        url += `&${Object.entries(body).map(([key, value]) => `${key}=${value}`).join('&')}`;
+      }
     } else {
       // Needs to be pn_authorization as Vercel (where pullnote is deployed) uses Authorization for internal business
       headers['pn_authorization'] = `Bearer ${this.apiKey}`;
@@ -140,12 +227,20 @@ export class PullnoteClient {
     }
     try {
       const res = await fetch(url, options);
-      if (!res.ok) throw new Error(await res.text());
       var data = await res.json();
+      if (!res.ok) {
+        var msg = (typeof data === "string") ? data : data?.message ?? "Unknown pullnote error";
+        if (res?.status === 404) {
+          console.warn(msg);
+          return null;
+        } else {
+          console.error({res, data});
+        }
+        throw new Error(msg);
+      }
       return data;
-    } catch (error) {
-      console.error("Pullnote package error:", error);
-      throw error;
+    } catch (err) {
+      throw err;
     }
   }
 

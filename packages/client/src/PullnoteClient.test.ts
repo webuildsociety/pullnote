@@ -15,10 +15,9 @@ describe('PullnoteClient', () => {
     const note = {
       title: 'Test Note',
       description: 'A note created by a test',
-      content_md: 'Initial content',
-      params: { path: TEST_NOTE_PATH },
+      content_md: 'Initial content'
     };
-    addedNote = await pn.add(note);
+    addedNote = await pn.add(TEST_NOTE_PATH, note);
   });
 
   afterAll(async () => {
@@ -55,7 +54,7 @@ describe('PullnoteClient', () => {
       console.warn('No PULLNOTE_TEST_TOKEN set, skipping test.');
       return;
     }
-    const updated = await pn.update({ title: 'Updated Test Note' }, TEST_NOTE_PATH);
+    const updated = await pn.update(TEST_NOTE_PATH, { title: 'Updated Test Note' });
     expect(updated).toHaveProperty('title', 'Updated Test Note');
   });
 
@@ -73,11 +72,10 @@ describe('PullnoteClient', () => {
     }
     expect(error).toBeTruthy();
     // Re-add for afterAll cleanup
-    await pn.add({
+    await pn.add(TEST_NOTE_PATH, {
       title: 'Test Note',
       description: 'A note created by a test',
-      content_md: 'Initial content',
-      params: { path: TEST_NOTE_PATH },
+      content_md: 'Initial content'
     });
   });
 }); 
