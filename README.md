@@ -41,13 +41,11 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 
 | Method                | Description                                                      |
 |-----------------------|------------------------------------------------------------------|
-| constructor           | Create a new PullnoteClient instance                              |
 | exists                | Check if a note exists at a given path                            |
 | get                   | Retrieve a note by path (optionally in a specific format)         |
 | add                   | Add a new note at a given path                                   |
 | update                | Update an existing note at a given path                          |
 | remove/delete         | Delete a note at a given path                                    |
-| clear                 | Clear the internal cache                                          |
 | getMd                 | Retrieve a note's content as Markdown                            |
 | getHtml               | Retrieve a note's content as HTML                                |
 | getTitle              | Retrieve a note's title                                           |
@@ -224,7 +222,8 @@ const title = await pn.getTitle('my-note-path');
 ---
 
 ### getData(path: string): Promise<Record<string, any>>
-Retrieve a note's data object.
+Retrieve a note's data object. Data can be any JSON record set with add() or update() and returned with the note.
+(this is useful for formatting pages that are about specific things, so you don't need to keep track of that on your client)
 
 **Parameters:**
 - `path` (string): The note path.
@@ -234,7 +233,8 @@ Retrieve a note's data object.
 
 **Example:**
 ```js
-const data = await pn.getData('my-note-path');
+await pn.add('my-site-in-france', {title: 'France', content: '...', data: { locale: 'en-FR', currency: 'EUR'}});
+const data = await pn.getData('my-site-in-france'); // Returns { locale: 'en-FR', currency: 'EUR'}
 ```
 
 ---
@@ -345,8 +345,7 @@ OpenAI specification for LLMs to discover which tools / actions are available (n
 - Paste the following (or add to your remoteServers list if already there)
 ```json
 {
-	"mcpServers": {
-	},
+  "mcpServers": { },
   "remoteServers": {
     "pullnote-api": {
       "url": "https://api.pullnote.com/mcp?key=[YOUR_PULLNOTE_API_KEY]"
@@ -383,59 +382,6 @@ Send a JSON body with the following fields:
 }
 ```
 
-#### Example: Retrieve a Note
-```json
-{
-  "action": "retrieve",
-  "tool": "note",
-  "params": {
-    "path": "interesting-ducks"
-  },
-  "pullnote_key": "YOUR_KEY_HERE"
-}
-```
-
-#### Example: Update a Note
-```json
-{
-  "action": "update",
-  "tool": "note",
-  "params": {
-    "path": "interesting-ducks",
-    "content": "Updated content.",
-    "imgUrl": "https://your-domain.com/a-new-image.png",
-    "prompt": "Optional AI prompt to re-generate content"
-  },
-  "pullnote_key": "YOUR_KEY_HERE"
-}
-```
-
-#### Example: Delete a Note
-```json
-{
-  "action": "delete",
-  "tool": "note",
-  "params": {
-    "path": "interesting-ducks"
-  },
-  "pullnote_key": "YOUR_KEY_HERE"
-}
-```
-
-#### Example: List Notes
-```json
-{
-  "action": "list",
-  "tool": "note",
-  "params": {
-    "path": "/",
-    "sort": "created",
-    "sortDirection": -1
-  },
-  "pullnote_key": "YOUR_KEY_HERE"
-}
-```
-
 ### Response Format
 All successful responses return:
 ```json
@@ -456,6 +402,7 @@ All successful responses return:
 - The MCP endpoint is designed for programmatic access by LLM tools and external services.
 - Free accounts are limited to 50 generation requests / mth and 1k notes
 
+# Code Contributors
 ## Testing
 Use `npm run test` to test code changes to this repository in isolation.
 
@@ -468,6 +415,7 @@ npm link @pullnote/client
 # Once you are finished testing in the consuming project
 npm unlink @pullnote/client
 ```
+
 ## Publishing
 - Update the package.json version number
 ```sh
