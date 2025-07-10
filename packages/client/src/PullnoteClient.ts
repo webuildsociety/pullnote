@@ -3,11 +3,11 @@ export type Note = {
   project_id?: string;
   title?: string;
   description?: string;
+  content?: string;
   picture?: string;
   imgUrl?: string;
   prompt?: string;
   imgPrompt?: string;
-  content_md?: string;
   created?: string;
   modified?: string;
   author?: string;

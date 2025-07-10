@@ -15,7 +15,7 @@ describe('PullnoteClient', () => {
     const note = {
       title: 'Test Note',
       description: 'A note created by a test',
-      content_md: 'Initial content'
+      content: 'Initial content'
     };
     addedNote = await pn.add(TEST_NOTE_PATH, note);
   });
@@ -75,7 +75,7 @@ describe('PullnoteClient', () => {
     await pn.add(TEST_NOTE_PATH, {
       title: 'Test Note',
       description: 'A note created by a test',
-      content_md: 'Initial content'
+      content: 'Initial content'
     });
   });
 }); 
