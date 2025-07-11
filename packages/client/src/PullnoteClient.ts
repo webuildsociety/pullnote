@@ -62,9 +62,9 @@ export class PullnoteClient {
 
   async remove(path: string) {
     path = path || this._cacheDoc?._path;
-    if (!path) throw new Error("No current document. Pass url path as second parameter");
-    await this._request('DELETE', path);
+    const res = await this._request('DELETE', path);
     this._clearCache();
+    return res?.success;
   }
 
   async delete(path: string) {
@@ -114,7 +114,7 @@ export class PullnoteClient {
     return this._request('POST', path, { prompt, imgPrompt });
   }
 
-    // Note: "" gets ALL notes, "/" just root level ones
+    // Note: "" gets ALL notes, whereas "/" just the root level ones
   async list(path: string, sort: string = 'created', sortDirection: number = 0) {
     if (!this._cacheList) {
       // Fetch all note summaries from server in created order and cache
@@ -150,6 +150,14 @@ export class PullnoteClient {
       });
     }
     return sorted;
+  }
+
+  async addUser(email: string, nomdeplume?: string) {
+    return this._request('POST', '/users', { user: { email, nomdeplume } });
+  }
+
+  async removeUser(email: string) {
+    return this._request('DELETE', '/users', { user: { email } });
   }
 
   async getSitemap(
@@ -201,6 +209,7 @@ export class PullnoteClient {
   // ----------------------------
 
   private async _request(method: string, path: string, body?: any) {
+    // Remove leading slash from path if given
     if (path && path.startsWith('/')) path = path.slice(1);
     let url = `${this.baseUrl}/${path}`;
     const headers: Record<string, string> = {

@@ -1,12 +1,7 @@
 # Pullnote
-Cloud-based headless API to save building a content backend for each project.
+Simple cloud-based headless API to save building a content backend for each project.
 
-This principally provides an outside database to store/retrieve content using NPM, REST or an AI MCP Server tool; plus a simple human editor at pullnote.com (desktop app coming soon).
-
-This is for you if you:
-- want simple, fast, programmable / API access to content
-- want to allow LLMs to create/save content for you (e.g. Cursor or Claude Code can smash content in / update for you via our MCP server)
-- don't want to build your own content area / auth / wysiwyg backend
+Pullnote principally provides an outside database to store/retrieve content using NPM, REST or an MCP Server; plus a simple human editor at pullnote.com.
 
 ## Getting started with NPM
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
@@ -16,21 +11,43 @@ Sign up for a free API key from [https://pullnote.com](pullnote.com)
 ```js
 import { PullnoteClient } from '@pullnote/client';
 
-const pn = new PullnoteClient(env.PULLNOTE_KEY);
+const pn = new PullnoteClient(PULLNOTE_KEY);
+```
 
-// Available functions: get, add, update, remove, getMd, getHtml, getTitle, getImage, getHead, generate, list, exists
-await pn.add('all-about-being-blue', {
+## Add a note
+```js
+await pn.add('/all-about-being-blue', {
     title: 'A Kinda Blue',
-    content: 'This is my content page about the colour blue.',
+    content: 'This is my content page about the colour blue.'
+});
+```
+
+### Add a note using a prompt
+```js
+// Note: the leading "/" is optional (except when adding a root page)
+await pn.add('/all-about-being-blue', {
+    title: 'A Kinda Blue',
     prompt: 'Write a short piece about the importance of the color blue'
 });
+```
 
-// Pull back the content, transformed into HTML
-var htmlContent = await pn.getHtml('all-about-being-blue');
+## Get a note
+```js
+var htmlContent = await pn.getHtml('/all-about-being-blue');
 
 // List all the notes in the "/blog" subdirectory
 var notes = await pn.list("/blog");
+```
 
+## Delete a note
+```js
+await pn.remove("all-about-being-blue");
+```
+
+## Add a user
+Added users can login at https://pullnote.com to edit content.
+```js
+await pn.addUser("support@pullnote.com");
 ```
 
 # API documentation
@@ -55,6 +72,7 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | generate              | Generate content for a note using an AI prompt                    |
 | list                  | List notes under a given path                                     |
 | getSitemap            | Generate an XML sitemap for your site                             |
+| addUser               | Add a user to your project (for editor access)                    |
 
 ---
 
@@ -320,6 +338,39 @@ Generate an XML sitemap for your site.
 **Example:**
 ```js
 const sitemap = await pn.getSitemap('https://mysite.com', ['/about', '/contact']);
+```
+
+---
+
+### addUser(email: string, nomdeplume?: string): Promise<any>
+Add a user to your project (for editor access). This allows the specified email to log in and edit content for your project at pullnote.com.
+
+**Parameters:**
+- `email` (string): The user's email address.
+- `nomdeplume` (string, optional): The user's display name (optional).
+
+**Returns:**
+- `Promise<any>`: The API response.
+
+**Example:**
+```js
+await pn.addUser("support@pullnote.com");
+```
+
+---
+
+### removeUser(email: string): Promise<any>
+Remove a user from your project (revokes their editor access).
+
+**Parameters:**
+- `email` (string): The user's email address to remove.
+
+**Returns:**
+- `Promise<any>`: The API response.
+
+**Example:**
+```js
+await pn.removeUser("support@pullnote.com");
 ```
 
 ---
