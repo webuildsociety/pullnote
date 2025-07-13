@@ -3,7 +3,17 @@ Simple cloud-based headless API to save building a content backend for each proj
 
 Pullnote principally provides an outside database to store/retrieve content using NPM, REST or an MCP Server; plus a simple human editor at pullnote.com.
 
+
+## Sites using Pullnote
+
+- [Rummij.com](https://rummij.com)
+- [Repatch.co.uk](https://repatch.co.uk)
+- [SvelteHeadless.com](https://svelteheadless.com)
+- [Echowalk.com](https://echowalk.com)
+
+
 ## Getting started with NPM
+
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
 
 `npm install @pullnote/client`
@@ -15,6 +25,7 @@ const pn = new PullnoteClient(PULLNOTE_KEY);
 ```
 
 ## Add a note
+
 ```js
 await pn.add('/all-about-being-blue', {
     title: 'A Kinda Blue',
@@ -22,7 +33,9 @@ await pn.add('/all-about-being-blue', {
 });
 ```
 
-### Add a note using a prompt
+
+## Add a note using a prompt
+
 ```js
 // Note: the leading "/" is optional (except when adding a root page)
 await pn.add('/all-about-being-blue', {
@@ -31,7 +44,9 @@ await pn.add('/all-about-being-blue', {
 });
 ```
 
+
 ## Get a note
+
 ```js
 var htmlContent = await pn.getHtml('/all-about-being-blue');
 
@@ -40,11 +55,14 @@ var notes = await pn.list("/blog");
 ```
 
 ## Delete a note
+
 ```js
 await pn.remove("all-about-being-blue");
 ```
 
+
 ## Add a user
+
 Added users edit content at [https://pullnote.com](https://pullnote.com)
 ```js
 await pn.addUser("support@pullnote.com");
