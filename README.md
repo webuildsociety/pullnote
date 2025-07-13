@@ -4,14 +4,6 @@ Simple cloud-based headless API to save building a content backend for each proj
 Pullnote principally provides an outside database to store/retrieve content using NPM, REST or an MCP Server; plus a simple human editor at pullnote.com.
 
 
-## Sites using Pullnote
-
-- [Rummij.com](https://rummij.com)
-- [Repatch.co.uk](https://repatch.co.uk)
-- [SvelteHeadless.com](https://svelteheadless.com)
-- [Echowalk.com](https://echowalk.com)
-
-
 ## Getting started with NPM
 
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
@@ -67,6 +59,15 @@ Added users edit content at [https://pullnote.com](https://pullnote.com)
 ```js
 await pn.addUser("support@pullnote.com");
 ```
+
+
+## Example sites using Pullnote
+
+| [![Rummij.com](https://rummij.com/favicon.ico)](https://rummij.com) | [![Repatch.co.uk](https://repatch.co.uk/favicon.ico)](https://repatch.co.uk) | [![SvelteHeadless.com](https://svelteheadless.com/favicon.ico)](https://svelteheadless.com) | [![Echowalk.com](https://echowalk.com/favicon.ico)](https://echowalk.com) |
+|:---:|:---:|:---:|:---:|
+| [Rummij.com](https://rummij.com) | [Repatch.co.uk](https://repatch.co.uk) | [SvelteHeadless.com](https://svelteheadless.com) | [Echowalk.com](https://echowalk.com) |
+
+
 
 # API documentation
 
