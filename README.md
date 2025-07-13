@@ -45,7 +45,7 @@ await pn.remove("all-about-being-blue");
 ```
 
 ## Add a user
-Added users can login at https://pullnote.com to edit content.
+Added users edit content at [https://pullnote.com](https://pullnote.com)
 ```js
 await pn.addUser("support@pullnote.com");
 ```
