@@ -24,4 +24,30 @@ await pn.add({
 
 const htmlContent = await pn.getHtml('/my-content-page');
 console.log(htmlContent);
-``` 
+```
+
+See main README for more info [https://github.com/webuildsociety/pullnote](https://github.com/webuildsociety/pullnote)
+
+
+# Code Contributors
+## Testing
+Use `npm run test` to test code changes to this repository in isolation.
+
+Pre-publishing, hook up a local project to your changes:
+```sh
+# In THIS project directory
+npm link
+# In the consuming project directory
+npm link @pullnote/client
+# Once you are finished testing in the consuming project
+npm unlink @pullnote/client
+```
+
+## Publishing
+- Update the package.json version number
+```sh
+npm login
+npm run build
+npm pack
+npm publish --access public
+```

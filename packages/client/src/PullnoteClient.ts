@@ -114,17 +114,28 @@ export class PullnoteClient {
     return this._request('POST', path, { prompt, imgPrompt });
   }
 
-    // Note: "" gets ALL notes, whereas "/" just the root level ones
+  // Note: "" gets ALL notes, whereas "/" just the root level ones
   async list(path: string, sort: string = 'created', sortDirection: number = 0) {
     if (!this._cacheList) {
       // Fetch all note summaries from server in created order and cache
       this._cacheList = await this._request('GET', `/?list=1&sort=created&sortDirection=-1`);
     }
-    if (!this._cacheList?.length) return [];
+    if (!this._cacheList?.length) {
+      return [];
+    }
     // Whittle the cache list down to the path requested
-    if (path) {
+    if (!path) {
+      var noteList = this._cacheList;
+    } else if (path == "/") {
+      var noteList = this._cacheList.filter((item: any) => {
+        return (item?.path && !item.path.includes("/"));
+      });
+    } else {
+      // Remove any leading slash
+      var base = path.replace(/^\//, "");
+      // Add a trailing slash to the path so we don't pick up the current note (or others with similar name)
+      if (!base.endsWith("/")) base = base + "/";
       // Only include notes directly under the given path (not deeper subfolders)
-      const base = path.endsWith("/") ? path : path + "/";
       var noteList = this._cacheList.filter((item: any) => {
         if (!item?.path || !item.path.startsWith(base)) {
           return false;
@@ -134,8 +145,6 @@ export class PullnoteClient {
         // Only include if there are no further slashes in the rest (i.e., not a subfolder)
         return rest.length > 0 && !rest.includes("/");
       });
-    } else {
-      var noteList = this._cacheList;
     }
     // Always sort the cached list in JS
     let sorted = [...(noteList || [])];
