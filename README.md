@@ -60,15 +60,6 @@ Added users edit content at [https://pullnote.com](https://pullnote.com)
 await pn.addUser("support@pullnote.com");
 ```
 
-
-## Example sites using Pullnote
-
-| [![Rummij.com](https://rummij.com/favicon.ico)](https://rummij.com) | [![Repatch.co.uk](https://repatch.co.uk/favicon.ico)](https://repatch.co.uk) | [![SvelteHeadless.com](https://svelteheadless.com/favicon.ico)](https://svelteheadless.com) | [![Echowalk.com](https://echowalk.com/favicon.ico)](https://echowalk.com) |
-|:---:|:---:|:---:|:---:|
-| [Rummij.com](https://rummij.com) | [Repatch.co.uk](https://repatch.co.uk) | [SvelteHeadless.com](https://svelteheadless.com) | [Echowalk.com](https://echowalk.com) |
-
-
-
 # API documentation
 
 ## PullnoteClient API
@@ -77,30 +68,41 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 
 | Method                | Description                                                      |
 |-----------------------|------------------------------------------------------------------|
-| exists                | Check if a note exists at a given path                            |
 | get                   | Retrieve a note by path (optionally in a specific format)         |
 | add                   | Add a new note at a given path                                   |
 | update                | Update an existing note at a given path                          |
 | remove/delete         | Delete a note at a given path                                    |
+| generate              | Generate content for a note using an AI prompt                    |
+| GET PARTS |                 |
 | getMd                 | Retrieve a note's content as Markdown                            |
 | getHtml               | Retrieve a note's content as HTML                                |
 | getTitle              | Retrieve a note's title                                           |
-| getData               | Retrieve a note's data object                                     |
 | getImage              | Retrieve a note's image URL                                       |
 | getHead               | Retrieve a note's head metadata (title, description, imgUrl)      |
-| generate              | Generate content for a note using an AI prompt                    |
-| list                  | List notes under a given path                                     |
+| FOLDER HELPERS |                 |
+| list                  | List related notes (parent, siblings, children - useful for menus)                 |
+| getParent             | Retrieve a note's parent folder note (if it exists)                                  |
+| getBreadcrumbs        | Retrieve all parents in the breadcrumb trail for a note                          |
+| getChildren           | Retrieve the children of a note                                   |
+| getSiblings           | Retrieve the siblings of a note                                   |
+| getAll                | Retrieve summary of all notes in the database                                |
+| UTILITIES           |                              |
+| exists                | Check if a note exists at a given path                            |
+| getIndex / setIndex              | For bespoke ordering                                      |
+| getData / setData              | Set / retrieve a note's data e.g. a related product key                                    |
 | getSitemap            | Generate an XML sitemap for your site                             |
-| addUser               | Add a user to your project (for editor access)                    |
+| addUser               | Add an editor to your project                    |
+| removeUser            | Remove an editor from your project                                   |
+| clear                 | Clear the internal cache                                          |
 
 ---
 
-### constructor(apiKey: string, baseUrl = 'https://api.pullnote.com')
+### constructor(apiKey: string)
 Create a new PullnoteClient instance.
 
 **Parameters:**
 - `apiKey` (string): Your Pullnote API key.
-- `baseUrl` (string, optional): API base URL (default: 'https://api.pullnote.com').
+api.pullnote.com').
 
 **Example:**
 ```js
@@ -137,7 +139,7 @@ Retrieve a note by path. Optionally specify a format ('md' or 'html').
 
 **Example:**
 ```js
-const note = await pn.get('my-note-path');
+const note = await pn.get('blog/cats');
 ```
 
 ---
@@ -154,7 +156,7 @@ Add a new note at the given path.
 
 **Example:**
 ```js
-await pn.add('my-note-path', { title: 'Title', content: 'Content' });
+await pn.add('blog/cats', { title: 'Cats', content: '# Meow' });
 ```
 
 ---
@@ -171,7 +173,7 @@ Update an existing note at the given path.
 
 **Example:**
 ```js
-await pn.update('my-note-path', { title: 'New Title' });
+await pn.update('blog/cats', { title: 'Interesting Cats' });
 ```
 
 ---
@@ -187,26 +189,13 @@ Delete a note at the given path.
 
 **Example:**
 ```js
-await pn.remove('my-note-path');
+await pn.remove('blog/cats');
 ```
 
 ---
 
 ### delete(path: string): Promise<void>
 Alias for `remove`.
-
----
-
-### clear(): Promise<void>
-Clear the internal cache.
-
-**Returns:**
-- `Promise<void>`
-
-**Example:**
-```js
-await pn.clear();
-```
 
 ---
 
@@ -221,7 +210,7 @@ Retrieve a note's content as Markdown.
 
 **Example:**
 ```js
-const md = await pn.getMd('my-note-path');
+const md = await pn.getMd('blog/cats');
 ```
 
 ---
@@ -237,7 +226,7 @@ Retrieve a note's content as HTML.
 
 **Example:**
 ```js
-const html = await pn.getHtml('my-note-path');
+const html = await pn.getHtml('blog/cats');
 ```
 
 ---
@@ -253,14 +242,14 @@ Retrieve a note's title.
 
 **Example:**
 ```js
-const title = await pn.getTitle('my-note-path');
+const title = await pn.getTitle('blog/cats');
 ```
 
 ---
 
 ### getData(path: string): Promise<Record<string, any>>
-Retrieve a note's data object. Data can be any JSON record set with add() or update() and returned with the note.
-(this is useful for formatting pages that are about specific things, so you don't need to keep track of that on your client)
+Retrieve a note's data object. Data can be any JSON record set always to be returned with the note.
+(this is useful for formatting pages that are about something specific)
 
 **Parameters:**
 - `path` (string): The note path.
@@ -276,6 +265,23 @@ const data = await pn.getData('my-site-in-france'); // Returns { locale: 'en-FR'
 
 ---
 
+### setData(path: string, data: Record<string, any>): Promise<void>
+Set a note's data object.
+
+**Parameters:**
+- `path` (string): The note path.
+- `data` (Record<string, any>): The data object to set.
+
+**Returns:**
+- `Promise<void>`
+
+**Example:**
+```js
+await pn.setData('blog/cats', { product_id: 'KITTY123' });
+```
+
+---
+
 ### getImage(path: string): Promise<string>
 Retrieve a note's image URL.
 
@@ -287,7 +293,7 @@ Retrieve a note's image URL.
 
 **Example:**
 ```js
-const imgUrl = await pn.getImage('my-note-path');
+const imgUrl = await pn.getImage('blog/cats');
 ```
 
 ---
@@ -326,20 +332,131 @@ await pn.generate('my-note-path', 'Write about blue.');
 
 ---
 
-### list(path: string, sort?: string, sortDirection?: number): Promise<Note[]>
-List notes under a given path.
+### list(path: string, sort?: string, sortDirection?: number): Promise<{ self: Note, parent: Note | null, parents: Note[], children: Note[], siblings: Note[], index: number }>
+List notes and related sub-lists for a given path. Returns an object containing the current note (self), its parent, an array of parent notes (breadcrumbs), children, siblings, and the index. Useful for building menus and navigation structures.
 
 **Parameters:**
 - `path` (string): The base path ("" for all notes, "/" for root level).
-- `sort` (string, optional): Field to sort by (default: 'created').
+- `sort` (string, optional): Field to sort by (default: 'modified').
 - `sortDirection` (number, optional): 1 for ascending, -1 for descending (default: 0).
 
 **Returns:**
-- `Promise<Note[]>`: Array of note summaries.
+- `Promise<{ self: Note, parent: Note | null, parents: Note[], children: Note[], siblings: Note[], index: number }>`: An object containing the current note and related sub-lists.
 
 **Example:**
 ```js
-const notes = await pn.list('/blog');
+const list = await pn.list('/blog');
+// list.self, list.parent, list.parents, list.children, list.siblings, list.index
+```
+
+---
+
+### getAll(): Promise<Note[]>
+Retrieve all notes in the database.
+
+**Returns:**
+- `Promise<Note[]>`: Array of all notes.
+
+**Example:**
+```js
+const allNotes = await pn.getAll();
+```
+
+---
+
+### getParent(path: string): Promise<Note | null>
+Retrieve the parent note object.
+
+**Parameters:**
+- `path` (string): The note path.
+
+**Returns:**
+- `Promise<Note | null>`: The parent note object, or null if it's a root note.
+
+**Example:**
+```js
+const parent = await pn.getParent('my-note-path');
+```
+
+---
+
+### getBreadcrumbs(path: string): Promise<Note[]>
+Retrieve the breadcrumb trail for a note.
+
+**Parameters:**
+- `path` (string): The note path.
+
+**Returns:**
+- `Promise<Note[]>`: Array of parent notes leading up to the current note.
+
+**Example:**
+```js
+const breadcrumbs = await pn.getBreadcrumbs('my-note-path');
+```
+
+---
+
+### getChildren(path: string): Promise<Note[]>
+Retrieve the children of a note.
+
+**Parameters:**
+- `path` (string): The note path.
+
+**Returns:**
+- `Promise<Note[]>`: Array of child notes.
+
+**Example:**
+```js
+const children = await pn.getChildren('my-note-path');
+```
+
+---
+
+### getSiblings(path: string): Promise<Note[]>
+Retrieve the siblings of a note.
+
+**Parameters:**
+- `path` (string): The note path.
+
+**Returns:**
+- `Promise<Note[]>`: Array of sibling notes.
+
+**Example:**
+```js
+const siblings = await pn.getSiblings('my-note-path');
+```
+
+---
+
+### getIndex(path: string): Promise<number>
+Retrieve the index of a note.
+
+**Parameters:**
+- `path` (string): The note path.
+
+**Returns:**
+- `Promise<number>`: The index of the note.
+
+**Example:**
+```js
+const index = await pn.getIndex('my-note-path');
+```
+
+---
+
+### setIndex(path: string, index: number): Promise<void>
+Set the index of a note.
+
+**Parameters:**
+- `path` (string): The note path.
+- `index` (number): The new index.
+
+**Returns:**
+- `Promise<void>`
+
+**Example:**
+```js
+await pn.setIndex('my-note-path', 0);
 ```
 
 ---
@@ -470,4 +587,4 @@ All successful responses return:
 
 ### Notes
 - The MCP endpoint is designed for programmatic access by LLM tools and external services.
-- Free accounts are limited to 50 generation requests / mth and 1k notes
+- Accounts are subject to usage limits due to storage and inference costs - see https://pullnote.com/pricing

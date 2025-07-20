@@ -30,6 +30,8 @@ See main README for more info [https://github.com/webuildsociety/pullnote](https
 
 
 # Code Contributors
+From the `/packages/client/` directory...
+
 ## Testing
 Use `npm run test` to test code changes to this repository in isolation.
 
@@ -38,9 +40,11 @@ Pre-publishing, hook up a local project to your changes:
 # In THIS project directory
 npm link
 # In the consuming project directory
+npm uninstall @pullnote/client
 npm link @pullnote/client
 # Once you are finished testing in the consuming project
 npm unlink @pullnote/client
+npm install @pullnote/client
 ```
 
 ## Publishing

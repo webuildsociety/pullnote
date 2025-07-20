@@ -12,6 +12,7 @@ export type Note = {
   modified?: string;
   author?: string;
   data?: Record<string, any>;
+  index?: number;
 };
 
 // API should not render HTML
@@ -21,17 +22,14 @@ export class PullnoteClient {
   private baseUrl: string;
   private _cacheDoc?: any;
   private _cacheList?: any;
+  private _cachedWhat?: {path: string, sort: string, sortDirection: number};
 
   constructor(apiKey: string, baseUrl = 'https://api.pullnote.com') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
   }
 
-  async exists(path: string) {
-    var res = await this._request('GET', path, { ping: 1});
-    return res.found;
-  }
-
+  // Return a note object for the given path, with all of it's properties
   async get(path: string, format: string = '') {
     if (!path) path = "/"; // Root path
     if (this._cacheDoc && this._cacheDoc.path === path && (!format || this._cacheDoc.format === format)) {
@@ -46,20 +44,31 @@ export class PullnoteClient {
     return doc;
   }
 
-  // Note: path will overwrite any note.path passed
+  // List surrounding notes related to the given path. Returns parents, children and siblings. Useful for building menus.
+  async list(path: string, sort: string = 'modified', sortDirection: number = -1) {
+    if (!this._cacheList || this._cachedWhat?.path !== path || this._cachedWhat?.sort !== sort || this._cachedWhat?.sortDirection !== sortDirection) {
+      // Fetch note summaries from server and cache
+      this._cacheList = await this._request('GET', path, {list: 1, sort, sortDirection});
+      this._cachedWhat = {path, sort, sortDirection};
+    }
+    return this._cacheList;
+  }
+
+  // Create a new note. Note: path will overwrite any note.path passed
   async add(path: string, note: Note) {
     this._clearCache();
     this._cacheDoc = await this._request('POST', path, note);
     return this._cacheDoc;
   }
 
-  // Note: move a note by passing a different path in changes.path
+  // Update a note with changes. Note: move a note by passing a different path in changes.path
   async update(path: string, changes: Partial<Note>) {
     this._clearCache();
     this._cacheDoc = await this._request('PATCH', path, changes);
     return this._cacheDoc;
   }
 
+  // Delete a note. Note: path will overwrite any note.path passed
   async remove(path: string) {
     path = path || this._cacheDoc?._path;
     const res = await this._request('DELETE', path);
@@ -71,15 +80,28 @@ export class PullnoteClient {
     return this.remove(path);
   }
 
+  // Generate a new note using a prompt.
+  async generate(path: string, prompt: string, imgPrompt?: string) {
+    this._clearCache();
+    return this._request('POST', path, { prompt, imgPrompt });
+  }
+
   async clear() {
     this._clearCache();
   }
 
+  async exists(path: string) {
+    var res = await this._request('GET', path, { ping: 1});
+    return res.found;
+  }
+
+  // Get the content of a note as markdown
   async getMd(path: string) {
     const doc = await this.get(path, 'md');
     return doc.content;
   }
 
+  // Get the content of a note as HTML
   async getHtml(path: string) {
     const doc = await this.get(path, 'html');
     return doc.content;
@@ -90,16 +112,24 @@ export class PullnoteClient {
     return doc?.title ?? "";
   }
 
+  // Return any data associated with a note. Useful for retrieving custom metadata.
   async getData(path: string) {
     const doc = await this.get(path);
     return doc?.data ?? {};
   }
 
+  // Shorthand to update the data associated with a note.
+  async setData(path: string, data: Record<string, any>) {
+    return await this.update(path, {data});
+  }
+
+  // Get any image URL associated with a note.
   async getImage(path: string) {
     const doc = await this.get(path);
     return doc.imgUrl;
   }
 
+  // Get the title, description, imgUrl associated with a note. Useful for <head> sections / SEO.
   async getHead(path: string) {
     const doc = await this.get(path);
     return {
@@ -109,105 +139,100 @@ export class PullnoteClient {
     }
   }
 
-  async generate(path: string, prompt: string, imgPrompt?: string) {
-    this._clearCache();
-    return this._request('POST', path, { prompt, imgPrompt });
+  // Returns all notes in the database. Useful for building custom sitemaps.
+  async getAll() {
+    return await this._request('GET', '/', {map: 1});
   }
 
-  // Note: "" gets ALL notes, whereas "/" just the root level ones
-  async list(path: string, sort: string = 'created', sortDirection: number = 0) {
-    if (!this._cacheList) {
-      // Fetch all note summaries from server in created order and cache
-      this._cacheList = await this._request('GET', `/?list=1&sort=created&sortDirection=-1`);
-    }
-    if (!this._cacheList?.length) {
-      return [];
-    }
-    // Whittle the cache list down to the path requested
-    if (!path) {
-      var noteList = this._cacheList;
-    } else if (path == "/") {
-      var noteList = this._cacheList.filter((item: any) => {
-        return (item?.path && !item.path.includes("/"));
-      });
-    } else {
-      // Remove any leading slash
-      var base = path.replace(/^\//, "");
-      // Add a trailing slash to the path so we don't pick up the current note (or others with similar name)
-      if (!base.endsWith("/")) base = base + "/";
-      // Only include notes directly under the given path (not deeper subfolders)
-      var noteList = this._cacheList.filter((item: any) => {
-        if (!item?.path || !item.path.startsWith(base)) {
-          return false;
-        }
-        // Get the rest of the path after the base
-        const rest = item.path.slice(base.length);
-        // Only include if there are no further slashes in the rest (i.e., not a subfolder)
-        return rest.length > 0 && !rest.includes("/");
-      });
-    }
-    // Always sort the cached list in JS
-    let sorted = [...(noteList || [])];
-    if (sort) {
-      sorted.sort((a, b) => {
-        if (a[sort] === undefined && b[sort] === undefined) return 0;
-        if (a[sort] === undefined) return 1;
-        if (b[sort] === undefined) return -1;
-        if (a[sort] < b[sort]) return sortDirection === -1 ? 1 : -1;
-        if (a[sort] > b[sort]) return sortDirection === -1 ? -1 : 1;
-        return 0;
-      });
-    }
-    return sorted;
+  // Get the parent of a note e.g. /blog/cats/tabby -> /blog/cats/
+  async getParent(path: string) {
+    let list = await this.list(path);
+    return list?.parent ?? null;
   }
 
+  // Get the breadcrumbs of a note e.g. /blog/cats/tabby -> [ {path: "/blog", title: "Blog"}, {path: "/blog/cats", title: "Cats"} ]
+  async getBreadcrumbs(path: string) {
+    let list = await this.list(path);
+    return list?.parents ?? [];
+  }
+
+  // Get the children of a note e.g. /blog/cats/ -> [ {path: "/blog/cats/tabby", title: "Tabby"}, {path: "/blog/cats/siamese", title: "Siamese"} ]
+  async getChildren(path: string) {
+    let list = await this.list(path);
+    return list?.children ?? [];
+  }
+
+  // Get the siblings of a note e.g. /blog/cats/tabby -> [ {path: "/blog/cats/tabby", title: "Tabby"}, {path: "/blog/cats/siamese", title: "Siamese"} ]
+  async getSiblings(path: string) {
+    let list = await this.list(path);
+    return list?.siblings ?? [];
+  }
+
+  // Get the index of a note. Useful for bespoke sorting.
+  async getIndex(path: string) {
+    let list = await this.list(path);
+    return list?.index ?? 0;
+  }
+
+  async setIndex(path: string, index: number) {
+    return await this.update(path, {index});
+  }
+
+  // Add a new user to pullnote.com e.g. for a content editor
   async addUser(email: string, nomdeplume?: string) {
     return this._request('POST', '/users', { user: { email, nomdeplume } });
   }
 
+  // Remove a user's access to pullnote.com
   async removeUser(email: string) {
     return this._request('DELETE', '/users', { user: { email } });
   }
 
+  // Get an XML sitemap for the whole site
   async getSitemap(
     siteUrl: string,
-    staticPages: (string | { path: string; modified?: string })[] = []
+    staticPages: (string | { loc: string; lastmod?: string })[] = []
   ) {
-    // Get all notes
-    var notes: { path: string, modified: string }[] = [];
-    // Start with static pages
-    staticPages.forEach((path: string | { path: string; modified?: string }) => {
-      if (typeof path !== "string") {
-        if (typeof path === "object" && path?.path) {
-          notes.push({
-            path: path.path,
-            modified: path?.modified ?? new Date().toISOString().split('T')[0]
+
+    var links: { loc: string, lastmod: string }[] = [];
+
+    // Get all dynamic notes
+    const dynamicPages = await this.getAll();
+
+    // Start with any additional static pages passed
+    staticPages.forEach((link: string | { loc: string; lastmod?: string }) => {
+      if (typeof link !== "string") {
+        if (typeof link === "object" && link?.loc) {
+          links.push({
+            loc: link.loc,
+            lastmod: link?.lastmod ?? new Date().toISOString().split('T')[0]
           });
         } else {
-          console.warn("Sitemap static path passed is not a string or object with path, modified properties:", path);
+          console.warn("Sitemap static path passed is not a string or object with loc, lastmod properties:", link);
         }
       } else {
-        notes.push({
-          path: path.trim(),
-          modified: new Date().toISOString().split('T')[0]
+        links.push({
+          loc: link.trim(),
+          lastmod: new Date().toISOString().split('T')[0]
         });
       }
     });
-    // Add in dynamic pages
-    const dynamicPages = await this.list("");
-    // Convert UNIX timestamps to ISO string of just date e.g. 2025-08-08
+
     dynamicPages.forEach((note: any) => {
-      notes.push({
-        path: note.path,
-        modified: new Date(note.modified * 1000).toISOString().split('T')[0]
+      var unixTime = note.modified;
+      var date = new Date(unixTime);
+      var lastmod = date.toISOString().split('T')[0];
+      links.push({
+        loc: note.path,
+        lastmod: lastmod
       });
     });
     // Build the XML
     var xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-    notes.forEach((note: any) => {
-      var path = (!note?.path) ? "/" : note.path;
-      if (!path.startsWith("/")) path = "/" + path;
-      xml += `  <url>\n    <loc>${siteUrl}${path}</loc>\n    <lastmod>${note.modified}</lastmod>\n  </url>\n`;
+    links.forEach((link: any) => {
+      var loc = (!link?.loc) ? "/" : link.loc;
+      if (!loc.startsWith("/")) loc = "/" + loc;
+      xml += `  <url>\n    <loc>${siteUrl}${loc}</loc>\n    <lastmod>${link.lastmod}</lastmod>\n  </url>\n`;
     });
     xml += `</urlset>\n`;
     // Return the XML
