@@ -35,7 +35,7 @@ From the `/packages/client/` directory...
 ## Testing
 Use `npm run test` to test code changes to this repository in isolation.
 
-Pre-publishing, hook up a local project to your changes:
+Pre-publishing, hooqk up a local project to your changes:
 ```sh
 # In THIS project directory
 npm link

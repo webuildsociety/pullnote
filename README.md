@@ -4,7 +4,7 @@ Simple cloud-based headless API to save building a content backend for each proj
 Pullnote principally provides an outside database to store/retrieve content using NPM, REST or an MCP Server; plus a simple human editor at pullnote.com.
 
 
-## Getting started with NPM
+## Getting started
 
 Sign up for a free API key from [https://pullnote.com](pullnote.com)
 
@@ -25,11 +25,9 @@ await pn.add('/all-about-being-blue', {
 });
 ```
 
-
-## Add a note using a prompt
+Or use a prompt
 
 ```js
-// Note: the leading "/" is optional (except when adding a root page)
 await pn.add('/all-about-being-blue', {
     title: 'A Kinda Blue',
     prompt: 'Write a short piece about the importance of the color blue'
@@ -37,25 +35,35 @@ await pn.add('/all-about-being-blue', {
 ```
 
 
-## Get a note
+## Retrieve a note
 
 ```js
+var note = await pn.get('/all-about-being-blue');
+```
+Or just the components
+```js
+var title = await pn.getTitle('/all-about-being-blue');
 var htmlContent = await pn.getHtml('/all-about-being-blue');
+```
 
-// List all the notes in the "/blog" subdirectory
+
+## List notes
+Get surrounding parents, children and sibling notes - useful for building menus.
+
+```js
 var notes = await pn.list("/blog");
 ```
 
-## Delete a note
+## Remove a note
 
 ```js
 await pn.remove("all-about-being-blue");
 ```
 
 
-## Add a user
+## Add a user
 
-Added users edit content at [https://pullnote.com](https://pullnote.com)
+Users can edit content by logging in at [https://pullnote.com](https://pullnote.com)
 ```js
 await pn.addUser("support@pullnote.com");
 ```
@@ -72,22 +80,21 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | add                   | Add a new note at a given path                                   |
 | update                | Update an existing note at a given path                          |
 | remove/delete         | Delete a note at a given path                                    |
-| generate              | Generate content for a note using an AI prompt                    |
-| GET PARTS |                 |
+| GET COMPONENTS |                 |
 | getMd                 | Retrieve a note's content as Markdown                            |
 | getHtml               | Retrieve a note's content as HTML                                |
 | getTitle              | Retrieve a note's title                                           |
 | getImage              | Retrieve a note's image URL                                       |
 | getHead               | Retrieve a note's head metadata (title, description, imgUrl)      |
-| FOLDER HELPERS |                 |
+| MENU HELPERS |                 |
 | list                  | List related notes (parent, siblings, children - useful for menus)                 |
 | getParent             | Retrieve a note's parent folder note (if it exists)                                  |
 | getBreadcrumbs        | Retrieve all parents in the breadcrumb trail for a note                          |
 | getChildren           | Retrieve the children of a note                                   |
 | getSiblings           | Retrieve the siblings of a note                                   |
-| getAll                | Retrieve summary of all notes in the database                                |
 | UTILITIES           |                              |
 | exists                | Check if a note exists at a given path                            |
+| getAll                | Retrieve summary of all notes in the database                                |
 | getIndex / setIndex              | For bespoke ordering                                      |
 | getData / setData              | Set / retrieve a note's data e.g. a related product key                                    |
 | getSitemap            | Generate an XML sitemap for your site                             |
@@ -96,6 +103,46 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | clear                 | Clear the internal cache                                          |
 
 ---
+
+## Note structure
+```ts
+interface Note {
+  _id: string;
+  project_id: string;
+  path: string; // e.g. blog/cats
+  title: string;
+  description?: string;
+  imgUrl?: string; // either your own or pullnote hosted if added via backend
+  prompt?: string; // LLM prompt for AI title, description, content
+  imgPrompt?: string; // LLM prompt for AI images
+  content_md?: string; // The raw content, as markdown
+  created: string;
+  modified: string;
+  author?: string; // Any string, inc nom-de-plume
+  data?: Record<string, any>;
+  index?: number;
+}
+```
+
+Example JSON
+```json
+{
+  "_id": "abc123",
+  "project_id": "pr123",
+  "path": "blog/all-about-being-blue",
+  "title": "A Kinda Blue",
+  "description": "A note about the color blue.",
+  "imgUrl": "https://example.com/image.png",
+  "prompt": "Write about blue.",
+  "imgPrompt": "Generate a blue image.",
+  "content_md": "# Blue",
+  "created": "2024-06-01T12:00:00Z",
+  "modified": "2024-06-01T12:00:00Z",
+  "author": "james",
+  "data": { "locale": "en-GB" },
+  "index": 0
+}
+```
 
 ### constructor(apiKey: string)
 Create a new PullnoteClient instance.

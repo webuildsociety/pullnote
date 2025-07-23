@@ -22,7 +22,7 @@ export class PullnoteClient {
   private baseUrl: string;
   private _cacheDoc?: any;
   private _cacheList?: any;
-  private _cachedWhat?: {path: string, sort: string, sortDirection: number};
+  private _cachedWhat?: {path: string, sort: string, sortDirection: number, all: number};
 
   constructor(apiKey: string, baseUrl = 'https://api.pullnote.com') {
     this.apiKey = apiKey;
@@ -49,7 +49,7 @@ export class PullnoteClient {
     if (!this._cacheList || this._cachedWhat?.path !== path || this._cachedWhat?.sort !== sort || this._cachedWhat?.sortDirection !== sortDirection) {
       // Fetch note summaries from server and cache
       this._cacheList = await this._request('GET', path, {list: 1, sort, sortDirection});
-      this._cachedWhat = {path, sort, sortDirection};
+      this._cachedWhat = {path, sort, sortDirection, all: 0};
     }
     return this._cacheList;
   }
@@ -141,7 +141,12 @@ export class PullnoteClient {
 
   // Returns all notes in the database. Useful for building custom sitemaps.
   async getAll() {
-    return await this._request('GET', '/', {map: 1});
+    if (this._cachedWhat?.all != 1) {
+      this._cacheList = await this._request('GET', '/', {all: 1});
+      this._cachedWhat = {path: '/', sort: 'modified', sortDirection: -1, all: 1};
+      console.log('cached all', this._cachedWhat);
+    }
+    return this._cacheList;
   }
 
   // Get the parent of a note e.g. /blog/cats/tabby -> /blog/cats/
