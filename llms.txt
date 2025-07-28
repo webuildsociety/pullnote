@@ -1,0 +1,39 @@
+# Pullnote
+
+> Pullnote is a cloud-based headless API that provides a simple database to store and retrieve content using NPM, REST, or MCP Server integration. It eliminates the need to build a content backend for each project by offering a centralized content management system with an optional human editor interface at pullnote.com.
+
+Pullnote is designed for developers who need a lightweight, API-first content management solution. It supports both programmatic content creation and human editing through a web interface. The service includes AI-powered content generation capabilities and provides multiple integration methods including a JavaScript client library, REST API, and MCP server for LLM tools.
+
+Key features include hierarchical content organization using paths, AI-powered content generation, image generation, SEO-friendly metadata, and flexible data storage. The API supports both manual content creation and AI-assisted generation using prompts.
+
+## Core Documentation
+
+- [Pullnote README](README.md): Complete API documentation, installation guide, and usage examples for the JavaScript client library
+- [Pullnote Client Package](packages/client/README.md): Detailed documentation for the official JavaScript/TypeScript client library
+- [Pullnote Client Source](packages/client/src/PullnoteClient.ts): TypeScript implementation of the main client class with all available methods
+- [Pullnote Client Tests](packages/client/src/PullnoteClient.test.ts): Test suite demonstrating proper usage patterns and edge cases
+
+## API Reference
+
+- [Client API Methods](README.md#pullnoteclient-api): Complete reference of all available methods including get, add, update, remove, and component-specific methods
+- [Note Structure](README.md#note-structure): Detailed interface definition for the Note object including all available fields and data types
+- [Method Examples](README.md#api-documentation): Code examples for each API method showing proper usage patterns and return values
+
+## Integration Guides
+
+- [Getting Started](README.md#getting-started): Quick start guide with installation and basic usage examples
+- [MCP Server Integration](README.md#mcp-server-for-llm-integration): Complete guide for integrating Pullnote with LLM tools like Cursor and Claude Code
+- [REST API Endpoints](README.md#mcp-server-for-llm-integration): Documentation for direct REST API usage including authentication and request formats
+
+## Examples and Use Cases
+
+- [Basic Operations](README.md#add-a-note): Examples of creating, retrieving, updating, and deleting notes
+- [Content Generation](README.md#add-a-note): How to use AI prompts for automatic content and image generation
+- [Hierarchical Navigation](README.md#list-notes): Building menus and navigation using parent, child, and sibling relationships
+- [SEO and Metadata](README.md#retrieve-a-note): Working with titles, descriptions, and head tags for SEO optimization
+
+## Optional
+
+- [Pullnote Website](https://pullnote.com): Main website for account management, pricing, and human editor interface
+- [API Pricing](https://pullnote.com/pricing): Usage limits and pricing information for different account tiers
+- [OpenAPI Specification](https://api.pullnote.com/openapi.json): Machine-readable API specification for automated tool discovery 

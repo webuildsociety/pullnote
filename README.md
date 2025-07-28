@@ -80,26 +80,27 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | add                   | Add a new note at a given path                                   |
 | update                | Update an existing note at a given path                          |
 | remove/delete         | Delete a note at a given path                                    |
-| GET COMPONENTS |                 |
+| **COMPONENTS** |                 |
 | getMd                 | Retrieve a note's content as Markdown                            |
 | getHtml               | Retrieve a note's content as HTML                                |
 | getTitle              | Retrieve a note's title                                           |
 | getImage              | Retrieve a note's image URL                                       |
-| getHead               | Retrieve a note's head metadata (title, description, imgUrl)      |
-| MENU HELPERS |                 |
-| list                  | List related notes (parent, siblings, children - useful for menus)                 |
+| getHeadHtml               | Retrieve a note's SEO friendly head tags (title, description, imgUrl)      |
+| **FOLDERS** |                 |
+| getSurrounding | List related surrounding notes (parent, siblings, children - useful for menus)                 |
+| list                  | Synonym for getSurrounding                 |
+| getAll                | Retrieve summary of all notes in the database                                |
 | getParent             | Retrieve a note's parent folder note (if it exists)                                  |
-| getBreadcrumbs        | Retrieve all parents in the breadcrumb trail for a note                          |
 | getChildren           | Retrieve the children of a note                                   |
 | getSiblings           | Retrieve the siblings of a note                                   |
-| UTILITIES           |                              |
+| getBreadcrumbs        | Retrieve all parents in the breadcrumb trail for a note                          |
+| **UTILITIES**           |                              |
 | exists                | Check if a note exists at a given path                            |
-| getAll                | Retrieve summary of all notes in the database                                |
-| getIndex / setIndex              | For bespoke ordering                                      |
-| getData / setData              | Set / retrieve a note's data e.g. a related product key                                    |
-| getSitemap            | Generate an XML sitemap for your site                             |
-| addUser               | Add an editor to your project                    |
-| removeUser            | Remove an editor from your project                                   |
+| getIndex / setIndex              | Set a bespoke ordering                                      |
+| getData / setData              | Save JSON data against a note e.g. a related product key                                    |
+| getSitemap            | Returns a dynamic XML sitemap                             |
+| addUser               | Add a human editor to your project                    |
+| removeUser            | Remove a human editor from your project                                   |
 | clear                 | Clear the internal cache                                          |
 
 ---
@@ -115,11 +116,11 @@ interface Note {
   imgUrl?: string; // either your own or pullnote hosted if added via backend
   prompt?: string; // LLM prompt for AI title, description, content
   imgPrompt?: string; // LLM prompt for AI images
-  content_md?: string; // The raw content, as markdown
-  created: string;
-  modified: string;
-  author?: string; // Any string, inc nom-de-plume
-  data?: Record<string, any>;
+  content?: string; // The raw content, as markdown
+  created: string; // date time
+  modified: string; // date time
+  author?: string; // nom-de-plume (any string)
+  data?: Record<string, any>; // JSON metadata
   index?: number;
 }
 ```
@@ -135,7 +136,7 @@ Example JSON
   "imgUrl": "https://example.com/image.png",
   "prompt": "Write about blue.",
   "imgPrompt": "Generate a blue image.",
-  "content_md": "# Blue",
+  "content": "# Blue",
   "created": "2024-06-01T12:00:00Z",
   "modified": "2024-06-01T12:00:00Z",
   "author": "james",
@@ -379,7 +380,7 @@ await pn.generate('my-note-path', 'Write about blue.');
 
 ---
 
-### list(path: string, sort?: string, sortDirection?: number): Promise<{ self: Note, parent: Note | null, parents: Note[], children: Note[], siblings: Note[], index: number }>
+### getSurrounding() / list(path: string, sort?: string, sortDirection?: number): Promise<{ self: Note, parent: Note | null, parents: Note[], children: Note[], siblings: Note[], index: number }>
 List notes and related sub-lists for a given path. Returns an object containing the current note (self), its parent, an array of parent notes (breadcrumbs), children, siblings, and the index. Useful for building menus and navigation structures.
 
 **Parameters:**

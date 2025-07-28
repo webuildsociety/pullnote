@@ -54,6 +54,11 @@ export class PullnoteClient {
     return this._cacheList;
   }
 
+  // Synonym for list()
+  async getSurrounding(path: string) {
+    return await this.list(path);
+  }
+  
   // Create a new note. Note: path will overwrite any note.path passed
   async add(path: string, note: Note) {
     this._clearCache();
@@ -129,14 +134,53 @@ export class PullnoteClient {
     return doc.imgUrl;
   }
 
-  // Get the title, description, imgUrl associated with a note. Useful for <head> sections / SEO.
-  async getHead(path: string) {
+  // Get a basic set of SEO friendly HTML head tags
+
+  async getHead(path: string, host?: string) {
     const doc = await this.get(path);
+
+    // Auto-detect host if not provided
+    if (!host) {
+      // Try to get from environment variable first (Node.js)
+      if (typeof process !== 'undefined' && process.env?.PULLNOTE_HOST) {
+        host = process.env.PULLNOTE_HOST;
+      }
+      // Fall back to browser location (client-side)
+      else if (typeof window !== 'undefined' && window.location) {
+        host = window.location.host;
+      }
+    }
+
     return {
       title: doc?.title ?? "",
       description: doc?.description ?? "",
-      imgUrl: doc?.imgUrl ?? ""
+      imgUrl: doc?.imgUrl ?? "",
+      path: doc?.path ?? "",
+      host: host ?? ""
     }
+  }
+
+  async getHeadHtml(path: string, host?: string) {    
+    const head = await this.getHead(path);
+    return `
+      <title>${head.title}</title>
+      <meta name="description" content="${head.description}">
+      <link rel="canonical" href="https://${head.host}${head.path}">
+      
+      <!-- Open Graph / Facebook -->
+      <meta property="og:type" content="article">
+      <meta property="og:title" content="${head.title}">
+      <meta property="og:description" content="${head.description}">
+      <meta property="og:url" content="https://${head.host}${head.path}">
+      <meta property="og:image" content="${head.imgUrl}">
+
+      <!-- Twitter -->
+      <meta name="twitter:card" content="summary_large_image">
+      <meta name="twitter:title" content="${head.title}">
+      <meta name="twitter:description" content="${head.description}">
+      <meta name="twitter:image" content="${head.imgUrl}">
+      <meta name="twitter:imageAlt" content="${head.title}">
+    `;
   }
 
   // Returns all notes in the database. Useful for building custom sitemaps.
@@ -297,4 +341,8 @@ export class PullnoteClient {
     this._cacheList = undefined;
   }
 
+  private stripOut(obj: any, fields: string[]) {
+    return Object.fromEntries(Object.entries(obj).filter(([key, value]) => !fields.includes(key)));
+  }
+  
 }
