@@ -4,36 +4,170 @@
 
 Pullnote is designed for developers who need a lightweight, API-first content management solution. It supports both programmatic content creation and human editing through a web interface. The service includes AI-powered content generation capabilities and provides multiple integration methods including a JavaScript client library, REST API, and MCP server for LLM tools.
 
-Key features include hierarchical content organization using paths, AI-powered content generation, image generation, SEO-friendly metadata, and flexible data storage. The API supports both manual content creation and AI-assisted generation using prompts.
+## Installation and Setup
 
-## Core Documentation
+```javascript
+npm install @pullnote/client
+import { PullnoteClient } from '@pullnote/client';
+const pn = new PullnoteClient('YOUR_API_KEY');
+```
 
-- [Pullnote README](README.md): Complete API documentation, installation guide, and usage examples for the JavaScript client library
-- [Pullnote Client Package](packages/client/README.md): Detailed documentation for the official JavaScript/TypeScript client library
-- [Pullnote Client Source](packages/client/src/PullnoteClient.ts): TypeScript implementation of the main client class with all available methods
-- [Pullnote Client Tests](packages/client/src/PullnoteClient.test.ts): Test suite demonstrating proper usage patterns and edge cases
+## Core API Methods
 
-## API Reference
+### Basic CRUD Operations
 
-- [Client API Methods](README.md#pullnoteclient-api): Complete reference of all available methods including get, add, update, remove, and component-specific methods
-- [Note Structure](README.md#note-structure): Detailed interface definition for the Note object including all available fields and data types
-- [Method Examples](README.md#api-documentation): Code examples for each API method showing proper usage patterns and return values
+```javascript
+// Create a note
+await pn.add('/path/to/note', {
+    title: 'Note Title',
+    content: 'Markdown content here',
+    description: 'Optional description',
+    imgUrl: 'https://example.com/image.png'
+});
 
-## Integration Guides
+// Retrieve a note
+const note = await pn.get('/path/to/note');
+const title = await pn.getTitle('/path/to/note');
+const htmlContent = await pn.getHtml('/path/to/note');
+const markdownContent = await pn.getMd('/path/to/note');
 
-- [Getting Started](README.md#getting-started): Quick start guide with installation and basic usage examples
-- [MCP Server Integration](README.md#mcp-server-for-llm-integration): Complete guide for integrating Pullnote with LLM tools like Cursor and Claude Code
-- [REST API Endpoints](README.md#mcp-server-for-llm-integration): Documentation for direct REST API usage including authentication and request formats
+// Update a note
+await pn.update('/path/to/note', { title: 'Updated Title' });
 
-## Examples and Use Cases
+// Delete a note
+await pn.remove('/path/to/note');
+```
 
-- [Basic Operations](README.md#add-a-note): Examples of creating, retrieving, updating, and deleting notes
-- [Content Generation](README.md#add-a-note): How to use AI prompts for automatic content and image generation
-- [Hierarchical Navigation](README.md#list-notes): Building menus and navigation using parent, child, and sibling relationships
-- [SEO and Metadata](README.md#retrieve-a-note): Working with titles, descriptions, and head tags for SEO optimization
+### AI-Powered Content Generation
 
-## Optional
+```javascript
+// Generate content using AI prompts
+await pn.add('/ai-generated-note', {
+    title: 'AI Generated Content',
+    prompt: 'Write a short article about the benefits of cloud computing',
+    imgPrompt: 'Generate an image representing cloud technology'
+});
+```
 
-- [Pullnote Website](https://pullnote.com): Main website for account management, pricing, and human editor interface
-- [API Pricing](https://pullnote.com/pricing): Usage limits and pricing information for different account tiers
-- [OpenAPI Specification](https://api.pullnote.com/openapi.json): Machine-readable API specification for automated tool discovery 
+### Hierarchical Navigation
+
+```javascript
+// Get surrounding notes (useful for building menus)
+const surrounding = await pn.list('/blog');
+// Returns: { self, parent, parents[], children[], siblings[], index }
+
+// Get specific relationships
+const parent = await pn.getParent('/blog/post-1');
+const children = await pn.getChildren('/blog');
+const siblings = await pn.getSiblings('/blog/post-1');
+const breadcrumbs = await pn.getBreadcrumbs('/blog/post-1');
+```
+
+### Metadata and SEO
+
+```javascript
+// Get SEO-friendly head tags
+const head = await pn.getHead('/blog/post-1');
+// Returns: { title, description, imgUrl }
+
+// Work with custom data
+await pn.setData('/blog/post-1', { 
+    locale: 'en-US', 
+    category: 'technology',
+    product_id: 'PROD123'
+});
+const data = await pn.getData('/blog/post-1');
+```
+
+## Note Structure
+
+```typescript
+interface Note {
+  _id: string;
+  project_id: string;
+  path: string;           // e.g. "blog/cats"
+  title: string;
+  description?: string;
+  imgUrl?: string;        // Your URL or Pullnote hosted
+  prompt?: string;        // AI prompt for content generation
+  imgPrompt?: string;     // AI prompt for image generation
+  content?: string;       // Raw markdown content
+  created: string;        // ISO date string
+  modified: string;       // ISO date string
+  author?: string;        // Display name
+  data?: Record<string, any>; // Custom JSON metadata
+  index?: number;         // Custom ordering
+}
+```
+
+## MCP Server Integration
+
+For LLM tools like Cursor and Claude Code:
+
+```json
+{
+  "mcpServers": {},
+  "remoteServers": {
+    "pullnote-api": {
+      "url": "https://api.pullnote.com/mcp?key=[YOUR_API_KEY]"
+    }
+  }
+}
+```
+
+### MCP Request Format
+
+```json
+{
+  "action": "create|retrieve|update|delete|list",
+  "tool": "note",
+  "params": {
+    "title": "Note Title",
+    "content": "Content here",
+    "prompt": "AI prompt (optional)",
+    "imgPrompt": "Image prompt (optional)"
+  },
+  "pullnote_key": "YOUR_API_KEY"
+}
+```
+
+## Common Use Cases
+
+### Building a Blog Menu
+```javascript
+const blogStructure = await pn.list('/blog');
+const menuItems = blogStructure.children.map(child => ({
+    title: child.title,
+    path: child.path,
+    description: child.description
+}));
+```
+
+### Creating SEO Pages
+```javascript
+const note = await pn.get('/product-page');
+const head = await pn.getHead('/product-page');
+// Use head.title, head.description, head.imgUrl for meta tags
+```
+
+### Batch Content Creation
+```javascript
+const articles = [
+    { path: '/blog/article-1', title: 'First Article', prompt: 'Write about AI' },
+    { path: '/blog/article-2', title: 'Second Article', prompt: 'Write about ML' }
+];
+
+for (const article of articles) {
+    await pn.add(article.path, {
+        title: article.title,
+        prompt: article.prompt
+    });
+}
+```
+
+## External Resources
+
+- [NPM Repository](https://github.com/webuildsociety/pullnote): Repository and source code for the client NPM package
+- [Pullnote Website](https://pullnote.com): Account management and human editor
+- [API Pricing](https://pullnote.com/pricing): Usage limits and pricing
+- [OpenAPI Spec](https://api.pullnote.com/openapi.json): Machine-readable API specification 
