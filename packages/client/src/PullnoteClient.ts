@@ -45,7 +45,7 @@ export class PullnoteClient {
   }
 
   // List surrounding notes related to the given path. Returns parents, children and siblings. Useful for building menus.
-  async list(path: string, sort: string = 'modified', sortDirection: number = -1) {
+  async list(path: string, sort: string = 'auto', sortDirection: number = 0) {
     if (!this._cacheList || this._cachedWhat?.path !== path || this._cachedWhat?.sort !== sort || this._cachedWhat?.sortDirection !== sortDirection) {
       // Fetch note summaries from server and cache
       this._cacheList = await this._request('GET', path, {list: 1, sort, sortDirection});
@@ -187,8 +187,7 @@ export class PullnoteClient {
   async getAll() {
     if (this._cachedWhat?.all != 1) {
       this._cacheList = await this._request('GET', '/', {all: 1});
-      this._cachedWhat = {path: '/', sort: 'modified', sortDirection: -1, all: 1};
-      console.log('cached all', this._cachedWhat);
+      this._cachedWhat = {path: '/', sort: 'auto', sortDirection: 1, all: 0};
     }
     return this._cacheList;
   }

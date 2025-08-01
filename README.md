@@ -385,8 +385,8 @@ List notes and related sub-lists for a given path. Returns an object containing 
 
 **Parameters:**
 - `path` (string): The base path ("" for all notes, "/" for root level).
-- `sort` (string, optional): Field to sort by (default: 'modified').
-- `sortDirection` (number, optional): 1 for ascending, -1 for descending (default: 0).
+- `sort` (string, optional): Field to sort by (default: 'auto').
+- `sortDirection` (number, optional): 1 for ascending, -1 for descending (default: 0 = auto).
 
 **Returns:**
 - `Promise<{ self: Note, parent: Note | null, parents: Note[], children: Note[], siblings: Note[], index: number }>`: An object containing the current note and related sub-lists.
@@ -509,7 +509,7 @@ await pn.setIndex('my-note-path', 0);
 
 ---
 
-### getSitemap(siteUrl: string, staticPages?: (string | { path: string; modified?: string })[]): Promise<string>
+### getSitemap(siteUrl: string, staticPages?: (string | { path: string })[]): Promise<string>
 Generate an XML sitemap for your site.
 
 **Parameters:**
