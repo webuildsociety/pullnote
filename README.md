@@ -47,11 +47,29 @@ var htmlContent = await pn.getHtml('/all-about-being-blue');
 ```
 
 
-## List notes
-Get surrounding parents, children and sibling notes - useful for building menus.
+## List surrounding notes
+Get surrounding parents, parent, children and sibling notes - useful for building menus and breadcrumb trails.
 
 ```js
-var notes = await pn.list("/blog");
+var notes = await pn.getSurrounding("/blog");
+```
+
+## Find notes
+Search for notes with filters, sorting, and field selection.
+
+```js
+// Find all notes with title containing "Hello"
+var notes = await pn.find('/', { title: "Hello" });
+
+// Find notes with data of London under the path "apple", with custom sorting
+var appleLondonNotes = await pn.find('/apple', { "data.city": "London" }, "title", 1);
+
+// Find notes with specific fields only
+var summaries = await pn.find('/', {}, "modified", -1, "path,title,data");
+
+// Return all notes
+var allNotes = await pn.find('/');
+
 ```
 
 ## Remove a note
@@ -68,6 +86,11 @@ Users can edit content by logging in at [https://pullnote.com](https://pullnote.
 await pn.addUser("support@pullnote.com");
 ```
 
+## Auto-generate a Sitemap
+```js
+var xml = await pn.getSitemap("https://myurl.com");
+```
+
 # API documentation
 
 ## PullnoteClient API
@@ -77,6 +100,7 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | Method                | Description                                                      |
 |-----------------------|------------------------------------------------------------------|
 | get                   | Retrieve a note by path (optionally in a specific format)         |
+| find                  | Search for notes with filters, sorting, and field selection      |
 | add                   | Add a new note at a given path                                   |
 | update                | Update an existing note at a given path                          |
 | remove/delete         | Delete a note at a given path                                    |
@@ -89,7 +113,7 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | **FOLDERS** |                 |
 | getSurrounding | List related surrounding notes (parent, siblings, children - useful for menus)                 |
 | list                  | Synonym for getSurrounding                 |
-| getAll                | Retrieve summary of all notes in the database                                |
+| getAll                | Retrieve summary of all notes in the database - same as find('/')                               |
 | getParent             | Retrieve a note's parent folder note (if it exists)                                  |
 | getChildren           | Retrieve the children of a note                                   |
 | getSiblings           | Retrieve the siblings of a note                                   |
@@ -188,6 +212,36 @@ Retrieve a note by path. Optionally specify a format ('md' or 'html').
 **Example:**
 ```js
 const note = await pn.get('blog/cats');
+```
+
+---
+
+### find(path: string, find: Record<string, any>, sort?: string, sortDirection?: number, fields?: string): Promise<Note[]>
+Find an array of notes starting at the given path with optional filtering, sorting, and field selection.
+
+**Parameters:**
+- `path` (string): The base path to search from (e.g., '/' for all notes, '/blog' for blog notes).
+- `find` (Record<string, any>): Filters to apply to the search. Can include nested data fields using dot notation (e.g., `{"data.city": "London"}`).
+- `sort` (string, optional): Field to sort by (e.g., 'title', 'modified', 'index').
+- `sortDirection` (number, optional): 1 for ascending, -1 for descending, 0 for default sorting.
+- `fields` (string, optional): Comma-separated list of fields to return (e.g., 'path,title,data,content_md').
+
+**Returns:**
+- `Promise<Note[]>`: Array of notes matching the criteria.
+
+**Examples:**
+```js
+// Find all notes with title containing "Hello"
+const notes = await pn.find('/', { title: "Hello" });
+
+// Find Apple notes under London with custom sorting
+const londonNotes = await pn.find('/london', { "data.brand": "Apple" }, "title", 1);
+
+// Find notes with specific fields only
+const summaries = await pn.find('/', {}, "modified", -1, "path,title,data");
+
+// Find notes in a specific folder
+const blogPosts = await pn.find('/blog', {}, "modified", -1);
 ```
 
 ---

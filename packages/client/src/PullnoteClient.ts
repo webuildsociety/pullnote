@@ -21,12 +21,14 @@ export class PullnoteClient {
   private apiKey: string;
   private baseUrl: string;
   private _cacheDoc?: any;
-  private _cacheList?: any;
-  private _cachedWhat?: {path: string, sort: string, sortDirection: number, all: number};
 
   constructor(apiKey: string, baseUrl = 'https://api.pullnote.com') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
+  }
+
+  async ping() {
+    return await this._request('GET', '/', {ping: 1});
   }
 
   // Return a note object for the given path, with all of it's properties
@@ -44,19 +46,29 @@ export class PullnoteClient {
     return doc;
   }
 
+  // Find an array of notes starting at the given path.
+  // Optional: find key pairs to filter the notes e.g. {title: "Hello", data.city: "London"}
+  // Optional: fields toggles output e.g. "path,title,data,content_md"
+  // Optional: sort toggles sort column(s) e.g. "title"
+  // Optional: sortDirection toggles sorting direction e.g. 1 for ascending, -1 for descending
+  // e.g. var londonNotes = await find('/', {data.city: "London"});
+  async find(path: string, find: Record<string, any> = {}, sort: string = "", sortDirection: number = 0, fields: string = "") {
+    return await this._request('GET', path, {find, fields, sort, sortDirection});
+  }
+
+  // Special case of "find" that returns all notes in the database
+  async getAll(sort: string = "", sortDirection: number = 0, fields: string = "") {
+    return await this._request('GET', '/', {find: {}, fields, sort, sortDirection});
+  }
+  
   // List surrounding notes related to the given path. Returns parents, children and siblings. Useful for building menus.
-  async list(path: string, sort: string = 'auto', sortDirection: number = 0) {
-    if (!this._cacheList || this._cachedWhat?.path !== path || this._cachedWhat?.sort !== sort || this._cachedWhat?.sortDirection !== sortDirection) {
-      // Fetch note summaries from server and cache
-      this._cacheList = await this._request('GET', path, {list: 1, sort, sortDirection});
-      this._cachedWhat = {path, sort, sortDirection, all: 0};
-    }
-    return this._cacheList;
+  async list(path: string, sort: string = "", sortDirection: number = 0) {
+    return await this._request('GET', path, {list: 1, sort, sortDirection: sortDirection});
   }
 
   // Synonym for list()
-  async getSurrounding(path: string) {
-    return await this.list(path);
+  async getSurrounding(path: string, sort: string = "", sortDirection: number = 0) {
+    return await this.list(path, sort, sortDirection);
   }
   
   // Create a new note. Note: path will overwrite any note.path passed
@@ -183,15 +195,6 @@ export class PullnoteClient {
     `;
   }
 
-  // Returns all notes in the database. Useful for building custom sitemaps.
-  async getAll() {
-    if (this._cachedWhat?.all != 1) {
-      this._cacheList = await this._request('GET', '/', {all: 1});
-      this._cachedWhat = {path: '/', sort: 'auto', sortDirection: 1, all: 0};
-    }
-    return this._cacheList;
-  }
-
   // Get the parent of a note e.g. /blog/cats/tabby -> /blog/cats/
   async getParent(path: string) {
     let list = await this.list(path);
@@ -238,10 +241,17 @@ export class PullnoteClient {
 
   // Get an XML sitemap for the whole site
   async getSitemap(
-    siteUrl: string,
+    siteUrl: string = "",
     staticPages: (string | { loc: string; lastmod?: string })[] = []
   ) {
 
+    if (!siteUrl) {
+      const ping = await this._request('GET', '/', {ping: 1});
+      siteUrl = ping?.project?.domain ?? "";
+      if (!siteUrl) {
+        throw new Error("Please pass your siteUrl or add a project URL at pullnote.com");
+      }
+    }
     var links: { loc: string, lastmod: string }[] = [];
 
     // Get all dynamic notes
@@ -301,8 +311,22 @@ export class PullnoteClient {
     // For GET requests, add token and data as query param
     if (method === 'GET') {
       url = url.includes('?') ? url + '&token=' + this.apiKey : url + '?token=' + this.apiKey;
-      if (body) {
-        url += `&${Object.entries(body).map(([key, value]) => `${key}=${value}`).join('&')}`;
+      if (body && Object.keys(body).length > 0) {
+        const queryParams = new URLSearchParams();
+        Object.entries(body).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            if (typeof value === 'object') {
+              // Handle objects by JSON stringifying them
+              queryParams.append(key, JSON.stringify(value));
+            } else {
+              queryParams.append(key, String(value));
+            }
+          }
+        });
+        const queryString = queryParams.toString();
+        if (queryString) {
+          url += '&' + queryString;
+        }
       }
     } else {
       // Needs to be pn_authorization as Vercel (where pullnote is deployed) uses Authorization for internal business
@@ -337,7 +361,6 @@ export class PullnoteClient {
 
   private _clearCache() {
     this._cacheDoc = undefined;
-    this._cacheList = undefined;
   }
 
   private stripOut(obj: any, fields: string[]) {
