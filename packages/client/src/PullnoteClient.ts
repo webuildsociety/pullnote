@@ -207,6 +207,11 @@ export class PullnoteClient {
     return list?.parents ?? [];
   }
 
+  // Synonym for getBreadcrumbs
+  async getParents(path: string) {
+    return this.getBreadcrumbs(path);
+  }
+
   // Get the children of a note e.g. /blog/cats/ -> [ {path: "/blog/cats/tabby", title: "Tabby"}, {path: "/blog/cats/siamese", title: "Siamese"} ]
   async getChildren(path: string) {
     let list = await this.list(path);

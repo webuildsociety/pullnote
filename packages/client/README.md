@@ -26,16 +26,16 @@ const htmlContent = await pn.getHtml('/my-content-page');
 console.log(htmlContent);
 ```
 
-See main README for more info [https://github.com/webuildsociety/pullnote](https://github.com/webuildsociety/pullnote)
+See main README for how to utilise this in a project [https://github.com/webuildsociety/pullnote](https://github.com/webuildsociety/pullnote)
 
 
 # Code Contributors
-From the `/packages/client/` directory...
+From the `packages/client/` directory...
 
 ## Testing
 Use `npm run test` to test code changes to this repository in isolation.
 
-Pre-publishing, hooqk up a local project to your changes:
+Pre-publishing, hook up a local project to your changes:
 ```sh
 # In THIS project directory
 npm link

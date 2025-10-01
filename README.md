@@ -115,9 +115,10 @@ The `PullnoteClient` class provides a set of methods to interact with the Pullno
 | list                  | Synonym for getSurrounding                 |
 | getAll                | Retrieve summary of all notes in the database - same as find('/')                               |
 | getParent             | Retrieve a note's parent folder note (if it exists)                                  |
+| getParents            | Retrieve all parents for a note                          |
 | getChildren           | Retrieve the children of a note                                   |
 | getSiblings           | Retrieve the siblings of a note                                   |
-| getBreadcrumbs        | Retrieve all parents in the breadcrumb trail for a note                          |
+| getBreadcrumbs        | Synonym for getParents                          |
 | **UTILITIES**           |                              |
 | exists                | Check if a note exists at a given path                            |
 | getIndex / setIndex              | Set a bespoke ordering                                      |
