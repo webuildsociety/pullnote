@@ -27,8 +27,13 @@ export class PullnoteClient {
     this.baseUrl = baseUrl;
   }
 
-  async ping() {
-    return await this._request('GET', '/', {ping: 1});
+  async ping(path: string = '/') {
+    return await this._request('GET', path, {ping: 1});
+  }
+
+  async exists(path: string) {
+    var res = await this._request('GET', path, { ping: 1});
+    return res.found;
   }
 
   // Return a note object for the given path, with all of it's properties
@@ -51,12 +56,13 @@ export class PullnoteClient {
   // Optional: fields toggles output e.g. "path,title,data,content_md"
   // Optional: sort toggles sort column(s) e.g. "title"
   // Optional: sortDirection toggles sorting direction e.g. 1 for ascending, -1 for descending
-  // e.g. var londonNotes = await find('/', {data.city: "London"});
+  // e.g. var londonNotes = await find('/', {"data.city": "London"});
   async find(path: string, find: Record<string, any> = {}, sort: string = "", sortDirection: number = 0, fields: string = "") {
     return await this._request('GET', path, {find, fields, sort, sortDirection});
   }
 
   // Special case of "find" that returns all notes in the database
+  // Note: This can be slow for large sites. Use find() instead.
   async getAll(sort: string = "", sortDirection: number = 0, fields: string = "") {
     return await this._request('GET', '/', {find: {}, fields, sort, sortDirection});
   }
@@ -107,11 +113,6 @@ export class PullnoteClient {
     this._clearCache();
   }
 
-  async exists(path: string) {
-    var res = await this._request('GET', path, { ping: 1});
-    return res.found;
-  }
-
   // Get the content of a note as markdown
   async getMd(path: string) {
     const doc = await this.get(path, 'md');
@@ -127,6 +128,11 @@ export class PullnoteClient {
   async getTitle(path: string) {
     const doc = await this.get(path);
     return doc?.title ?? "";
+  }
+
+  async getImgUrl(path: string) {
+    const doc = await this.get(path);
+    return doc?.imgUrl ?? "";
   }
 
   // Return any data associated with a note. Useful for retrieving custom metadata.

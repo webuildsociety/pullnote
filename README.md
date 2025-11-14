@@ -183,6 +183,29 @@ const pn = new PullnoteClient('YOUR_API_KEY');
 ```
 
 ---
+### ping(path: string): Promise<boolean>
+Check a note at the given path
+
+**Parameters:**
+- `path` (string): The path to check.
+
+**Returns:**
+- `Promise<PingResponse>`: A diagnostic payload from the Pullnote API. Successful lookups return `{ msg: "Note found", title, path, found: 1, status: 200, project }`. Missing notes return `{ msg: "Note not found", path, found: 0, status: 404, project }`. When a note has been moved you’ll get `{ msg: "Note moved", path, redirect, found: 0, status: 301, project }`.
+
+**Example:**
+```js
+const ping = await pn.ping('my/note/path');
+
+if (ping.found) {
+  console.log(`Note found: ${ping.title}`);
+} else if (ping.redirect) {
+  console.log(`Note moved to ${ping.redirect}`);
+} else {
+  console.log('Note not found');
+}
+```
+
+---
 
 ### exists(path: string): Promise<boolean>
 Check if a note exists at the given path.
@@ -691,3 +714,6 @@ All successful responses return:
 ### Notes
 - The MCP endpoint is designed for programmatic access by LLM tools and external services.
 - Accounts are subject to usage limits due to storage and inference costs - see https://pullnote.com/pricing
+
+## Code Contributors
+See `packages/client/README.md` for instructions on contributing to the maintenance of this package.
