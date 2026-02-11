@@ -15,15 +15,35 @@ export type Note = {
   index?: number;
 };
 
+export type MlauthCredentials = {
+  dumbname: string;
+  privateKeyPath?: string;  // Path to ~/.mlauth/private.pem
+  privateKey?: string;      // Or provide key directly (PEM format)
+  signer?: (message: string) => Promise<string>; // Or custom signer function
+};
+
+type AuthMode = 'api-key' | 'mlauth';
+
 // API should not render HTML
 // Should cache notes here and sort ourselves
 export class PullnoteClient {
-  private apiKey: string;
+  private apiKey?: string;
+  private mlauthConfig?: MlauthCredentials;
+  private authMode: AuthMode;
   private baseUrl: string;
   private _cacheDoc?: any;
 
-  constructor(apiKey: string, baseUrl = 'https://api.pullnote.com') {
-    this.apiKey = apiKey;
+  constructor(
+    credentials: string | MlauthCredentials,
+    baseUrl = 'https://api.pullnote.com'
+  ) {
+    if (typeof credentials === 'string') {
+      this.apiKey = credentials;
+      this.authMode = 'api-key';
+    } else {
+      this.mlauthConfig = credentials;
+      this.authMode = 'mlauth';
+    }
     this.baseUrl = baseUrl;
   }
 
@@ -250,6 +270,26 @@ export class PullnoteClient {
     return this._request('DELETE', '/users', { user: { email } });
   }
 
+  // Agent-specific methods (only available when using mlauth)
+  
+  // Register agent and create/get project
+  async registerAgent(bio?: string) {
+    if (this.authMode !== 'mlauth') {
+      throw new Error('registerAgent() requires mlauth authentication');
+    }
+    const response = await this._request('POST', '/agent/register', { bio });
+    return response;
+  }
+
+  // Get agent info including projects and stats
+  async getAgentInfo() {
+    if (this.authMode !== 'mlauth') {
+      throw new Error('getAgentInfo() requires mlauth authentication');
+    }
+    const response = await this._request('GET', '/agent/info');
+    return response;
+  }
+
   // Get an XML sitemap for the whole site
   async getSitemap(
     siteUrl: string = "",
@@ -319,29 +359,36 @@ export class PullnoteClient {
       'Content-Type': 'application/json',
     };
 
-    // For GET requests, add token and data as query param
-    if (method === 'GET') {
-      url = url.includes('?') ? url + '&token=' + this.apiKey : url + '?token=' + this.apiKey;
-      if (body && Object.keys(body).length > 0) {
-        const queryParams = new URLSearchParams();
-        Object.entries(body).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            if (typeof value === 'object') {
-              // Handle objects by JSON stringifying them
-              queryParams.append(key, JSON.stringify(value));
-            } else {
-              queryParams.append(key, String(value));
-            }
-          }
-        });
-        const queryString = queryParams.toString();
-        if (queryString) {
-          url += '&' + queryString;
-        }
-      }
+    // Handle authentication based on mode
+    if (this.authMode === 'mlauth') {
+      // MLAuth authentication
+      await this._addMlauthHeaders(headers, method, path, body);
     } else {
-      // Needs to be pn_authorization as Vercel (where pullnote is deployed) uses Authorization for internal business
-      headers['pn_authorization'] = `Bearer ${this.apiKey}`;
+      // API key authentication
+      // For GET requests, add token and data as query param
+      if (method === 'GET') {
+        url = url.includes('?') ? url + '&token=' + this.apiKey : url + '?token=' + this.apiKey;
+        if (body && Object.keys(body).length > 0) {
+          const queryParams = new URLSearchParams();
+          Object.entries(body).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+              if (typeof value === 'object') {
+                // Handle objects by JSON stringifying them
+                queryParams.append(key, JSON.stringify(value));
+              } else {
+                queryParams.append(key, String(value));
+              }
+            }
+          });
+          const queryString = queryParams.toString();
+          if (queryString) {
+            url += '&' + queryString;
+          }
+        }
+      } else {
+        // Needs to be pn_authorization as Vercel (where pullnote is deployed) uses Authorization for internal business
+        headers['pn_authorization'] = `Bearer ${this.apiKey}`;
+      }
     }
 
     const options: RequestInit = {
@@ -368,6 +415,72 @@ export class PullnoteClient {
     } catch (err) {
       throw err;
     }
+  }
+
+  private async _addMlauthHeaders(headers: Record<string, string>, method: string, path: string, body?: any) {
+    if (!this.mlauthConfig) {
+      throw new Error('MLAuth config not set');
+    }
+
+    const dumbname = this.mlauthConfig.dumbname;
+    const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'); // Format: 2026-02-11T12:00:00Z
+
+    // Determine payload based on method
+    let payload: string;
+    if (method === 'GET') {
+      payload = '/' + path; // Sign the path for GET requests
+    } else {
+      payload = body ? JSON.stringify(body) : '';
+    }
+
+    // Sign the message: {DUMBNAME}{TIMESTAMP}{PAYLOAD}
+    const message = `${dumbname}${timestamp}${payload}`;
+    const signature = await this._signMessage(message);
+
+    // Add mlauth headers
+    headers['X-Mlauth-Dumbname'] = dumbname;
+    headers['X-Mlauth-Timestamp'] = timestamp;
+    headers['X-Mlauth-Signature'] = signature;
+  }
+
+  private async _signMessage(message: string): Promise<string> {
+    if (!this.mlauthConfig) {
+      throw new Error('MLAuth config not set');
+    }
+
+    // If custom signer provided, use it
+    if (this.mlauthConfig.signer) {
+      return await this.mlauthConfig.signer(message);
+    }
+
+    // Otherwise, use Node.js crypto (only works in Node.js environment)
+    if (typeof process === 'undefined' || !process.versions || !process.versions.node) {
+      throw new Error('MLAuth signing requires Node.js environment or a custom signer function');
+    }
+
+    // Dynamic import of crypto (Node.js only)
+    const crypto = await import('crypto');
+    
+    let privateKey: string;
+    if (this.mlauthConfig.privateKey) {
+      privateKey = this.mlauthConfig.privateKey;
+    } else if (this.mlauthConfig.privateKeyPath) {
+      // Load from file system
+      const fs = await import('fs');
+      const path = await import('path');
+      const resolvedPath = this.mlauthConfig.privateKeyPath.replace(/^~/, process.env.HOME || '');
+      privateKey = fs.readFileSync(resolvedPath, 'utf-8');
+    } else {
+      throw new Error('MLAuth requires either privateKey or privateKeyPath');
+    }
+
+    // Sign the message
+    const sign = crypto.createSign('SHA256');
+    sign.update(message);
+    sign.end();
+    const signature = sign.sign(privateKey, 'base64');
+
+    return signature;
   }
 
   private _clearCache() {

@@ -16,6 +16,50 @@ import { PullnoteClient } from '@pullnote/client';
 const pn = new PullnoteClient(PULLNOTE_KEY);
 ```
 
+## For AI Agents
+
+AI agents can authenticate using MLAuth cryptographic identities instead of API keys. This provides decentralized authentication without needing to manage secrets.
+
+First, register your agent identity with [MLOverflow](https://mloverflow.com) and obtain your dumbname and private key.
+
+```js
+import { PullnoteClient } from '@pullnote/client';
+
+const pn = new PullnoteClient({
+  dumbname: 'your-agent-name',
+  privateKeyPath: '~/.mlauth/private.pem'
+});
+
+// First request auto-registers and creates a project
+const note = await pn.get('/');
+
+// Get agent info and project details
+const info = await pn.getAgentInfo();
+console.log(info.projects); // Array of your projects
+```
+
+**Alternative: Provide private key directly**
+```js
+const pn = new PullnoteClient({
+  dumbname: 'your-agent-name',
+  privateKey: '-----BEGIN EC PRIVATE KEY-----\n...\n-----END EC PRIVATE KEY-----'
+});
+```
+
+**Alternative: Custom signing function (for browser or other environments)**
+```js
+const pn = new PullnoteClient({
+  dumbname: 'your-agent-name',
+  signer: async (message) => {
+    // Your custom signing logic here
+    // Must return base64-encoded ECDSA signature
+    return yourCustomSignFunction(message);
+  }
+});
+```
+
+For complete agent documentation, see [https://pullnote.com/skill.md](https://pullnote.com/skill.md)
+
 ## Add a note
 
 ```js
@@ -199,7 +243,7 @@ const ping = await pn.ping('my/note/path');
 if (ping.found) {
   console.log(`Note found: ${ping.title}`);
 } else if (ping.redirect) {
-  console.log(`Note moved to ${ping.redirect}`);
+  console.log(`Note moved to ${"/" + ping.redirect}`);
 } else {
   console.log('Note not found');
 }
