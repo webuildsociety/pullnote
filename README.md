@@ -761,3 +761,8 @@ All successful responses return:
 
 ## Code Contributors
 See `packages/client/README.md` for instructions on contributing to the maintenance of this package.
+
+
+# License
+
+MIT — see [LICENSE](LICENSE)

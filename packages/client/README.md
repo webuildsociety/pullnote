@@ -38,6 +38,7 @@ Use `npm run test` to test code changes to this repository in isolation.
 Pre-publishing, hook up a local project to your changes:
 ```sh
 # In THIS project directory
+cd packages/client
 npm link
 # In the consuming project directory
 npm uninstall @pullnote/client
@@ -55,3 +56,7 @@ npm run build
 npm pack
 npm publish --access public
 ```
+
+# License
+
+MIT — see [LICENSE](LICENSE)

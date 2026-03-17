@@ -20,6 +20,7 @@ export type MlauthCredentials = {
   privateKeyPath?: string;  // Path to ~/.mlauth/private.pem
   privateKey?: string;      // Or provide key directly (PEM format)
   signer?: (message: string) => Promise<string>; // Or custom signer function
+  project_id?: string;      // Target a specific project (defaults to primary project)
 };
 
 type AuthMode = 'api-key' | 'mlauth';
@@ -290,6 +291,32 @@ export class PullnoteClient {
     return response;
   }
 
+  // Invite a human user (by email) to an agent-owned project.
+  // The invited user can then sign in at pullnote.com with their Google account.
+  // role defaults to 'editor'. project_id defaults to the agent's primary project.
+  async inviteUser(email: string, role: string = 'editor', project_id?: string) {
+    if (this.authMode !== 'mlauth') {
+      throw new Error('inviteUser() requires mlauth authentication');
+    }
+    return this._request('POST', '/agent/invite', { email, role, ...(project_id ? { project_id } : {}) });
+  }
+
+  // Switch the active project for all subsequent requests.
+  // Useful when an agent owns multiple projects.
+  // Pass null to revert to the primary (first) project.
+  useProject(project_id: string | null) {
+    if (this.authMode !== 'mlauth') {
+      throw new Error('useProject() requires mlauth authentication');
+    }
+    if (!this.mlauthConfig) return;
+    if (project_id === null) {
+      delete this.mlauthConfig.project_id;
+    } else {
+      this.mlauthConfig.project_id = project_id;
+    }
+    this._clearCache();
+  }
+
   // Get an XML sitemap for the whole site
   async getSitemap(
     siteUrl: string = "",
@@ -441,6 +468,11 @@ export class PullnoteClient {
     headers['X-Mlauth-Dumbname'] = dumbname;
     headers['X-Mlauth-Timestamp'] = timestamp;
     headers['X-Mlauth-Signature'] = signature;
+
+    // If a specific project is targeted, include it so the API knows which one to use
+    if (this.mlauthConfig.project_id) {
+      headers['X-Pullnote-Project-Id'] = this.mlauthConfig.project_id;
+    }
   }
 
   private async _signMessage(message: string): Promise<string> {
