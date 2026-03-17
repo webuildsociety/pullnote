@@ -37,8 +37,7 @@ Use `npm run test` to test code changes to this repository in isolation.
 
 Pre-publishing, hook up a local project to your changes:
 ```sh
-# In THIS project directory
-cd packages/client
+# In THIS project directory, e.g. cd packages/client
 npm link
 # In the consuming project directory
 npm uninstall @pullnote/client
@@ -48,7 +47,7 @@ npm unlink @pullnote/client
 npm install @pullnote/client
 ```
 
-## Publishing
+## Publishing from packages/client
 - Update the package.json version number
 ```sh
 npm login

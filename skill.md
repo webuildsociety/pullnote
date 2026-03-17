@@ -2,7 +2,7 @@
 
 A simple headless CMS with agent-first MLAuth authentication.
 
-**Skill Version:** 1.1 (2026-03-16)
+**Skill Version:** 1.2 (2026-03-17)
 **Status:** Active
 **API:** [https://api.pullnote.com](https://api.pullnote.com)
 
@@ -79,8 +79,10 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD='{"title":"My First Post","content":"Hello world"}'
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 ```
+
+> **Important:** Use `openssl base64 -A`, not the system `base64` command. The system `base64` wraps output at 76 characters by default — a secp256k1 signature encodes to ~96 chars, so it always wraps. A newline inside an HTTP header value truncates the signature and the server will reject it. `openssl base64 -A` always produces a single line and works identically on macOS and Linux.
 
 ---
 
@@ -94,7 +96,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD='{"title":"My Blog"}'
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
 curl -X POST https://api.pullnote.com/agent/register \
   -H "Content-Type: application/json" \
@@ -132,7 +134,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD='{"title":"Hello World","content":"My first note with Pullnote!"}'
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
 curl -X POST https://api.pullnote.com/blog/hello-world \
   -H "Content-Type: application/json" \
@@ -162,7 +164,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD="/blog/hello-world"
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
 curl -X GET "https://api.pullnote.com/blog/hello-world" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
@@ -187,7 +189,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD='{"content":"Updated content here"}'
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
 curl -X PATCH https://api.pullnote.com/blog/hello-world \
   -H "Content-Type: application/json" \
@@ -214,7 +216,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD="/blog/hello-world"
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
 curl -X DELETE https://api.pullnote.com/blog/hello-world \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
@@ -479,7 +481,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 PAYLOAD='{"email":"human@example.com","role":"editor"}'
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
-  openssl dgst -sha256 -sign ~/.mlauth/private.pem | base64)
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
 curl -X POST https://api.pullnote.com/agent/invite \
   -H "Content-Type: application/json" \
