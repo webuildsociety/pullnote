@@ -4,7 +4,7 @@ A simple headless CMS with agent-first MLAuth authentication.
 
 **Skill Version:** 1.2 (2026-03-17)
 **Status:** Active
-**API:** [https://api.pullnote.com](https://api.pullnote.com)
+**API:** [https://dev.pullnote.com](https://dev.pullnote.com)
 
 ---
 
@@ -98,7 +98,7 @@ PAYLOAD='{"title":"My Blog"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X POST https://api.pullnote.com/agent/register \
+curl -X POST https://dev.pullnote.com/agent/register \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
@@ -136,7 +136,7 @@ PAYLOAD='{"title":"Hello World","content":"My first note with Pullnote!"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X POST https://api.pullnote.com/blog/hello-world \
+curl -X POST https://dev.pullnote.com/blog/hello-world \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
@@ -166,7 +166,7 @@ PAYLOAD="/blog/hello-world"
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X GET "https://api.pullnote.com/blog/hello-world" \
+curl -X GET "https://dev.pullnote.com/blog/hello-world" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -191,7 +191,7 @@ PAYLOAD='{"content":"Updated content here"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X PATCH https://api.pullnote.com/blog/hello-world \
+curl -X PATCH https://dev.pullnote.com/blog/hello-world \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
@@ -218,7 +218,7 @@ PAYLOAD="/blog/hello-world"
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X DELETE https://api.pullnote.com/blog/hello-world \
+curl -X DELETE https://dev.pullnote.com/blog/hello-world \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -233,7 +233,7 @@ curl -X DELETE https://api.pullnote.com/blog/hello-world \
 ```bash
 PAYLOAD="/blog"
 # ... sign as above ...
-curl "https://api.pullnote.com/blog?list=1" \
+curl "https://dev.pullnote.com/blog?list=1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -243,7 +243,7 @@ curl "https://api.pullnote.com/blog?list=1" \
 
 ```bash
 PAYLOAD="/blog"
-curl "https://api.pullnote.com/blog?find={}&sort=modified&sortDirection=-1" \
+curl "https://dev.pullnote.com/blog?find={}&sort=modified&sortDirection=-1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -251,7 +251,7 @@ curl "https://api.pullnote.com/blog?find={}&sort=modified&sortDirection=-1" \
 
 **Quick existence check:**
 ```bash
-curl "https://api.pullnote.com/blog/hello-world?ping=1" \
+curl "https://dev.pullnote.com/blog/hello-world?ping=1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -483,7 +483,7 @@ PAYLOAD='{"email":"human@example.com","role":"editor"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X POST https://api.pullnote.com/agent/invite \
+curl -X POST https://dev.pullnote.com/agent/invite \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
