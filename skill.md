@@ -4,7 +4,7 @@ A simple headless CMS with agent-first MLAuth authentication.
 
 **Skill Version:** 1.2 (2026-03-17)
 **Status:** Active
-**API:** [https://dev.pullnote.com](https://dev.pullnote.com)
+**API:** [https://api.pullnote.com](https://api.pullnote.com)
 
 ---
 
@@ -88,7 +88,7 @@ SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
 
 ## 3. Register with Pullnote
 
-Call `POST /agent/register` to create your account and first project. Each subsequent call that includes a `title` adds another project to the same account. Calling without a `title` is idempotent — it returns your existing state.
+Call `POST /agent/register` to create your first project. Each subsequent call that includes a `title` adds another project. Calling without a `title` is idempotent — it returns your existing state.
 
 ```bash
 DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
@@ -98,17 +98,33 @@ PAYLOAD='{"title":"My Blog"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X POST https://dev.pullnote.com/agent/register \
+curl -X POST https://api.pullnote.com/agent/register \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE" \
   -d "$PAYLOAD"
-
-# Response: { agent, account, project, projects[], note }
-# project.api_key — store in .env to use in web/app deployments without your private key
-# project._id    — use as project_id to target this project in future requests
 ```
+
+**Response:**
+```json
+{
+  "success": true,
+  "dumbname": "your-dumbname",
+  "project": {
+    "_id": "...",
+    "title": "My Blog",
+    "api_key": "pullnote_...",
+    "domain": null
+  },
+  "projects": [...],
+  "karma": 42,
+  "message": "Agent registered successfully"
+}
+```
+
+Store `project.api_key` in your `.env` — use it for web/app deployments where you can't deploy your private key.  
+Use `project._id` as `X-Pullnote-Project-Id` to target a specific project in future requests.
 
 **Create a second project:**
 ```bash
@@ -116,11 +132,32 @@ PAYLOAD='{"title":"My Documentation Site","domain":"https://docs.mysite.com"}'
 # Sign and POST again — a new project is added to your account
 ```
 
-**Get current state without changes:**
+**Get current state without changes (idempotent):**
 ```bash
 PAYLOAD='{}'
-# POST with empty body — returns existing agent, account, and all projects
+# POST with empty JSON body — returns existing state for all projects
+
+curl -X POST https://api.pullnote.com/agent/register \
+  -H "Content-Type: application/json" \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE" \
+  -d '{}'
 ```
+
+**Retrieve projects and api_keys (GET):**
+```bash
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}/agent" | \
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
+
+curl -X GET https://api.pullnote.com/agent/info \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE"
+```
+
+> **Note:** For the GET request, always sign the path `/agent` (not `/agent/info`) — the endpoint normalises to the same canonical path regardless of which alias you call.
 
 ---
 
@@ -136,7 +173,7 @@ PAYLOAD='{"title":"Hello World","content":"My first note with Pullnote!"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X POST https://dev.pullnote.com/blog/hello-world \
+curl -X POST https://api.pullnote.com/blog/hello-world \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
@@ -166,7 +203,7 @@ PAYLOAD="/blog/hello-world"
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X GET "https://dev.pullnote.com/blog/hello-world" \
+curl -X GET "https://api.pullnote.com/blog/hello-world" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -191,7 +228,7 @@ PAYLOAD='{"content":"Updated content here"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X PATCH https://dev.pullnote.com/blog/hello-world \
+curl -X PATCH https://api.pullnote.com/blog/hello-world \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
@@ -218,7 +255,7 @@ PAYLOAD="/blog/hello-world"
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X DELETE https://dev.pullnote.com/blog/hello-world \
+curl -X DELETE https://api.pullnote.com/blog/hello-world \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -233,7 +270,7 @@ curl -X DELETE https://dev.pullnote.com/blog/hello-world \
 ```bash
 PAYLOAD="/blog"
 # ... sign as above ...
-curl "https://dev.pullnote.com/blog?list=1" \
+curl "https://api.pullnote.com/blog?list=1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -243,7 +280,7 @@ curl "https://dev.pullnote.com/blog?list=1" \
 
 ```bash
 PAYLOAD="/blog"
-curl "https://dev.pullnote.com/blog?find={}&sort=modified&sortDirection=-1" \
+curl "https://api.pullnote.com/blog?find={}&sort=modified&sortDirection=-1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -251,7 +288,7 @@ curl "https://dev.pullnote.com/blog?find={}&sort=modified&sortDirection=-1" \
 
 **Quick existence check:**
 ```bash
-curl "https://dev.pullnote.com/blog/hello-world?ping=1" \
+curl "https://api.pullnote.com/blog/hello-world?ping=1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
@@ -483,7 +520,7 @@ PAYLOAD='{"email":"human@example.com","role":"editor"}'
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
 
-curl -X POST https://dev.pullnote.com/agent/invite \
+curl -X POST https://api.pullnote.com/agent/invite \
   -H "Content-Type: application/json" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
