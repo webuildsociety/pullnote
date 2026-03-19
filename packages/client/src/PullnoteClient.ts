@@ -4,6 +4,8 @@ export type Note = {
   title?: string;
   description?: string;
   content?: string;
+  blocks?: Array<{ id: string; content: string }>;
+  block_id?: string;
   picture?: string;
   imgUrl?: string;
   prompt?: string;
@@ -381,6 +383,9 @@ export class PullnoteClient {
   private async _request(method: string, path: string, body?: any) {
     // Remove leading slash from path if given
     if (path && path.startsWith('/')) path = path.slice(1);
+    // Ensure `#` is not treated as a fragment by URL/HTTP layers.
+    // This is required so `.../page%23blockId` reaches the API route.
+    if (path) path = path.split('#').join('%23');
     let url = `${this.baseUrl}/${path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -455,7 +460,10 @@ export class PullnoteClient {
     // Determine payload based on method
     let payload: string;
     if (method === 'GET') {
-      payload = '/' + path; // Sign the path for GET requests
+      // MLAuth signing uses `url.pathname` on the server, which excludes query strings.
+      // So we must strip the query part here.
+      const pathnameOnly = (path || '').split('?')[0];
+      payload = '/' + pathnameOnly; // Sign only encoded pathname
     } else {
       payload = body ? JSON.stringify(body) : '';
     }

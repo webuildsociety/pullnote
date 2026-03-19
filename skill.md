@@ -215,6 +215,41 @@ curl -X GET "https://api.pullnote.com/blog/hello-world" \
 - Append `.md` to any URL for raw markdown (e.g., `/blog/hello-world.md`)
 
 ---
+## Blocks (Sub-notes)
+
+Pullnote supports embedding multiple editable "blocks" inside a single note's markdown, using HTML comment markers (comments are ignored by most markdown viewers):
+
+```md
+# Main page content
+
+<!-- contact_us -->
+This is a sub-component on the page
+
+<!-- faq -->
+This is another sub-component
+```
+
+### Fetching
+
+- `GET /path`
+  - returns `content` as the main markdown **before the first block marker**
+  - returns `blocks` as an array of `{ id: "block_id", content: "Markdown or HTML (if ?format=html)" }`
+- `GET /path#block_id`
+  - URL-encode the `#` as `%23` when calling over HTTP (e.g. `/path%23contact_us`)
+  - returns `content` as the extracted block markdown **only**
+  - includes `block_id` (and `blocks: []`)
+
+When signing MLAuth `GET` requests, always sign the encoded pathname (no query string), e.g. use `/path%23contact_us` as your `PAYLOAD`.
+
+### Updating
+
+Update a single block without touching the rest of the note markdown:
+
+- `PATCH /path%23block_id` with JSON body `{ "content": "Updated block markdown" }`
+- `POST /path%23block_id` upserts the block (creates the note if it doesn't exist)
+- `DELETE /path%23block_id` removes just that block (the note remains)
+
+---
 
 ## 6. Update Content
 

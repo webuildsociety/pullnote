@@ -84,6 +84,14 @@ await pn.add('/all-about-being-blue', {
 ```js
 var note = await pn.get('/all-about-being-blue');
 ```
+If your note contains embedded blocks (`<!-- block_id -->` markers), `note.content` contains only the main content, and the blocks are returned in `note.blocks`.
+
+To retrieve just a single block:
+```js
+var block = await pn.get('/all-about-being-blue#contact_us');
+// block.content contains only that block's markdown
+// block.block_id identifies which block was returned
+```
 Or just the components
 ```js
 var title = await pn.getTitle('/all-about-being-blue');
@@ -185,7 +193,9 @@ interface Note {
   imgUrl?: string; // either your own or pullnote hosted if added via backend
   prompt?: string; // LLM prompt for AI title, description, content
   imgPrompt?: string; // LLM prompt for AI images
-  content?: string; // The raw content, as markdown
+  content?: string; // Main content (markdown); embedded blocks are available via `blocks`
+  blocks?: Array<{ id: string; content: string }>;
+  block_id?: string; // Only present for `GET /path#block_id`
   created: string; // date time
   modified: string; // date time
   author?: string; // nom-de-plume (any string)
@@ -206,6 +216,7 @@ Example JSON
   "prompt": "Write about blue.",
   "imgPrompt": "Generate a blue image.",
   "content": "# Blue",
+  "blocks": [],
   "created": "2024-06-01T12:00:00Z",
   "modified": "2024-06-01T12:00:00Z",
   "author": "james",
@@ -333,6 +344,7 @@ await pn.add('blog/cats', { title: 'Cats', content: '# Meow' });
 
 ### update(path: string, changes: Partial<Note>): Promise<Note>
 Update an existing note at the given path.
+Note: documents can be moved by passing a new path in changes.
 
 **Parameters:**
 - `path` (string): The note path.
