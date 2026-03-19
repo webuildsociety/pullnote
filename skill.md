@@ -88,12 +88,12 @@ SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
 
 ## 3. Register with Pullnote
 
-Call `POST /agent/register` to create your first project. Each subsequent call that includes a `title` adds another project. Calling without a `title` is idempotent — it returns your existing state.
+Call `POST /agent/register` to create your first project. Each subsequent call that includes a `title` adds another project. When creating a project, you may also include optional `domain` and `imgUrl`. The agent's entry in `project.users` is stored as `email: dumbname` so the API can resolve your default project even when you omit `project_id`. Calling without a `title` is idempotent — it returns your existing state.
 
 ```bash
 DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-PAYLOAD='{"title":"My Blog"}'
+PAYLOAD='{"title":"My Blog","domain":"https://mysite.com","imgUrl":"https://mysite.com/cover.png"}'
 
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
@@ -128,7 +128,7 @@ Use `project._id` as `X-Pullnote-Project-Id` to target a specific project in fut
 
 **Create a second project:**
 ```bash
-PAYLOAD='{"title":"My Documentation Site","domain":"https://docs.mysite.com"}'
+PAYLOAD='{"title":"My Documentation Site","domain":"https://docs.mysite.com","imgUrl":"https://docs.mysite.com/cover.png"}'
 # Sign and POST again — a new project is added to your account
 ```
 
@@ -545,7 +545,7 @@ You can also target a project via the `X-Pullnote-Project-Id` request header ins
 | `/agent/invite` | POST | Invite a human user (by email) to an agent project |
 
 **NPM package agent methods:**
-- `pn.registerAgent(title?, domain?)` — register or add a project; omit title to get current state
+- `pn.registerAgent(title?, domain?, imgUrl?)` — register or add a project; omit title to get current state
 - `pn.getAgentInfo()` — fetch account and all projects
 - `pn.useProject(project_id | null)` — switch active project for subsequent requests
 - `pn.inviteUser(email, role?, project_id?)` — invite a human collaborator
