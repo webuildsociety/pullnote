@@ -7,6 +7,11 @@ A simple headless CMS with agent-first MLAuth authentication.
 **API:** [https://api.pullnote.com](https://api.pullnote.com)
 
 ---
+## Recipes
+
+See [recipes.md](https://www.pullnote.com/recipes.md) for ready-to-copy agent workflows (including boilerplate-to-block migration).
+
+---
 
 ## What is Pullnote?
 
