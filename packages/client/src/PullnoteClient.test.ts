@@ -75,7 +75,7 @@ describe('PullnoteClient', () => {
     expect(fetched).toHaveProperty('path', TEST_NOTE_PATH);
     expect(fetched).toHaveProperty('block_id', BLOCK_1_ID);
     expect(fetched).toHaveProperty('content', BLOCK_1_MD);
-    expect(fetched.blocks).toEqual([]);
+    expect(fetched.blocks).toEqual([expect.objectContaining({ id: BLOCK_1_ID, content: BLOCK_1_MD })]);
   });
 
   it('should update a note', async () => {
@@ -110,13 +110,17 @@ describe('PullnoteClient', () => {
     await pn.addUser('test@pullnote.com', 'Test User');
   });
 
-  it('should encode # in GET paths (unit)', async () => {
+  it('should fetch core doc path and extract #block (unit)', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       json: async () => ({
         title: 'x',
-        path: 'y',
-        content: '',
+        path: 'some/page',
+        content: MAIN_MD,
+        blocks: [
+          { id: BLOCK_1_ID, content: BLOCK_1_MD },
+          { id: BLOCK_2_ID, content: BLOCK_2_MD }
+        ],
         created: new Date().toISOString(),
         modified: new Date().toISOString()
       })
@@ -127,11 +131,15 @@ describe('PullnoteClient', () => {
       vi.resetModules();
       const { PullnoteClient: PullnoteClientLocal } = await import('./PullnoteClient.js');
       const pnLocal = new PullnoteClientLocal('dummy_api_key', 'https://example.com');
-      await pnLocal.get(`some/page#${BLOCK_1_ID}`, 'md');
+      const doc = await pnLocal.get(`some/page#${BLOCK_1_ID}`, 'md');
 
       const calledUrl = (fetchMock as any).mock.calls?.[0]?.[0] as string | undefined;
-      expect(calledUrl).toContain(`some/page%23${BLOCK_1_ID}`);
+      expect(calledUrl).toContain(`some/page`);
       expect(calledUrl).not.toContain(`#${BLOCK_1_ID}`);
+      expect(calledUrl).not.toContain('%23');
+      expect(doc?.block_id).toBe(BLOCK_1_ID);
+      expect(doc?.content).toBe(BLOCK_1_MD);
+      expect(doc?.blocks).toEqual([expect.objectContaining({ id: BLOCK_1_ID, content: BLOCK_1_MD })]);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -142,8 +150,9 @@ describe('PullnoteClient', () => {
       ok: true,
       json: async () => ({
         title: 'x',
-        path: 'y',
+        path: 'some/page',
         content: '<p>ok</p>',
+        blocks: [{ id: BLOCK_1_ID, content: '<p>block html</p>' }],
         created: new Date().toISOString(),
         modified: new Date().toISOString()
       })
@@ -165,10 +174,12 @@ describe('PullnoteClient', () => {
         'https://example.com'
       );
 
-      await pnLocal.get(`some/page#${BLOCK_1_ID}`, 'html');
+      const doc = await pnLocal.get(`some/page#${BLOCK_1_ID}`, 'html');
 
-      expect(signedMessage).toContain(`/some/page%23${BLOCK_1_ID}`);
+      expect(signedMessage).toContain(`/some/page`);
+      expect(signedMessage).not.toContain('%23');
       expect(signedMessage).not.toContain('format=html');
+      expect(doc?.content).toBe('<p>block html</p>');
     } finally {
       vi.unstubAllGlobals();
     }
@@ -179,10 +190,9 @@ describe('PullnoteClient', () => {
       ok: true,
       json: async () => ({
         title: 'x',
-        path: 'y',
-        content: BLOCK_1_MD,
-        blocks: [],
-        block_id: BLOCK_1_ID,
+        path: 'some/page',
+        content: MAIN_MD,
+        blocks: [{ id: BLOCK_1_ID, content: BLOCK_1_MD }],
         created: new Date().toISOString(),
         modified: new Date().toISOString()
       })
@@ -197,7 +207,8 @@ describe('PullnoteClient', () => {
       const result = await pnLocal.getMd(`some/page#${BLOCK_1_ID}`);
 
       const calledUrl = (fetchMock as any).mock.calls?.[0]?.[0] as string | undefined;
-      expect(calledUrl).toContain(`some/page%23${BLOCK_1_ID}`);
+      expect(calledUrl).toContain(`some/page`);
+      expect(calledUrl).not.toContain('%23');
       expect(calledUrl).not.toContain('format=html');
       expect(result).toBe(BLOCK_1_MD);
     } finally {
@@ -210,10 +221,9 @@ describe('PullnoteClient', () => {
       ok: true,
       json: async () => ({
         title: 'x',
-        path: 'y',
-        content: '<p>block html</p>',
-        blocks: [],
-        block_id: BLOCK_1_ID,
+        path: 'some/page',
+        content: '<p>full html</p>',
+        blocks: [{ id: BLOCK_1_ID, content: '<p>block html</p>' }],
         created: new Date().toISOString(),
         modified: new Date().toISOString()
       })
@@ -228,9 +238,50 @@ describe('PullnoteClient', () => {
       const result = await pnLocal.getHtml(`some/page#${BLOCK_1_ID}`);
 
       const calledUrl = (fetchMock as any).mock.calls?.[0]?.[0] as string | undefined;
-      expect(calledUrl).toContain(`some/page%23${BLOCK_1_ID}`);
+      expect(calledUrl).toContain(`some/page`);
       expect(calledUrl).toContain('format=html');
+      expect(calledUrl).not.toContain('%23');
       expect(result).toBe('<p>block html</p>');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('registerAgent should send join code payload (unit)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        success: true,
+        message: 'Agent joined existing project'
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    let signedMessage = '';
+    try {
+      vi.resetModules();
+      const { PullnoteClient: PullnoteClientLocal } = await import('./PullnoteClient.js');
+      const pnLocal = new PullnoteClientLocal(
+        {
+          dumbname: 'agent_d1',
+          signer: async (message: string) => {
+            signedMessage = message;
+            return 'c2ln';
+          }
+        },
+        'https://example.com'
+      );
+
+      const res = await pnLocal.registerAgent({ code: 'pullnote_test_key' });
+
+      const calledUrl = (fetchMock as any).mock.calls?.[0]?.[0] as string | undefined;
+      const calledOptions = (fetchMock as any).mock.calls?.[0]?.[1] as RequestInit | undefined;
+      const postedBody = JSON.parse(String(calledOptions?.body || '{}'));
+
+      expect(calledUrl).toContain('/agent/register');
+      expect(postedBody).toEqual({ code: 'pullnote_test_key' });
+      expect(signedMessage).toContain('{"code":"pullnote_test_key"}');
+      expect(res?.success).toBe(true);
     } finally {
       vi.unstubAllGlobals();
     }

@@ -25,6 +25,16 @@ export type MlauthCredentials = {
   project_id?: string;      // Target a specific project (defaults to primary project)
 };
 
+export type RegisterAgentOptions = {
+  title?: string;
+  domain?: string;
+  imgUrl?: string;
+  email?: string;
+  code?: string;
+  key?: string;
+  api_key?: string;
+};
+
 type AuthMode = 'api-key' | 'mlauth';
 
 // API should not render HTML
@@ -35,6 +45,7 @@ export class PullnoteClient {
   private authMode: AuthMode;
   private baseUrl: string;
   private _cacheDoc?: any;
+  private _cacheCorePath?: string;
 
   constructor(
     credentials: string | MlauthCredentials,
@@ -62,16 +73,25 @@ export class PullnoteClient {
   // Return a note object for the given path, with all of it's properties
   async get(path: string, format: string = '') {
     if (!path) path = "/"; // Root path
-    if (this._cacheDoc && this._cacheDoc.path === path && (!format || this._cacheDoc.format === format)) {
-      return this._cacheDoc;
+
+    const [rawCorePath, blockId = ""] = path.split('#');
+    const corePath = rawCorePath || "/";
+
+    if (this._cacheDoc && this._cacheCorePath === corePath) {
+      return this._extractBlockFromDoc(this._cacheDoc, blockId);
     }
+
     this._clearCache();
+
+    let requestPath = corePath;
     if (format && format != 'md') {
-      path = (path.includes('?')) ? path + '&format=' + format : path + '?format=' + format;
+      requestPath = (requestPath.includes('?')) ? requestPath + '&format=' + format : requestPath + '?format=' + format;
     }
-    const doc = await this._request('GET', path);
+
+    const doc = await this._request('GET', requestPath);
     this._cacheDoc = doc;
-    return doc;
+    this._cacheCorePath = corePath;
+    return this._extractBlockFromDoc(doc, blockId);
   }
 
   // Find an array of notes starting at the given path.
@@ -275,12 +295,18 @@ export class PullnoteClient {
 
   // Agent-specific methods (only available when using mlauth)
   
-  // Register agent and create/get project
-  async registerAgent(bio?: string) {
+  // Register an agent:
+  // - registerAgent('My Project') -> create a project with title
+  // - registerAgent({ code: 'pullnote_...' }) -> join existing project by key
+  // - registerAgent() -> idempotent fetch/create behavior
+  async registerAgent(options?: string | RegisterAgentOptions) {
     if (this.authMode !== 'mlauth') {
       throw new Error('registerAgent() requires mlauth authentication');
     }
-    const response = await this._request('POST', '/agent/register', { bio });
+    const payload = (typeof options === 'string')
+      ? { title: options }
+      : (options || {});
+    const response = await this._request('POST', '/agent/register', payload);
     return response;
   }
 
@@ -525,6 +551,19 @@ export class PullnoteClient {
 
   private _clearCache() {
     this._cacheDoc = undefined;
+    this._cacheCorePath = undefined;
+  }
+
+  private _extractBlockFromDoc(doc: any, blockId: string) {
+    if (!blockId) return doc;
+    const blocks = Array.isArray(doc?.blocks) ? doc.blocks : [];
+    const block = blocks.find((b: any) => b?.id === blockId);
+    return {
+      ...doc,
+      block_id: blockId,
+      content: block?.content ?? "",
+      blocks: block ? [block] : []
+    };
   }
 
   private stripOut(obj: any, fields: string[]) {

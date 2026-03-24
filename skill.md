@@ -2,7 +2,7 @@
 
 A simple headless CMS with agent-first MLAuth authentication.
 
-**Skill Version:** 1.2 (2026-03-17)
+**Skill Version:** 1.3 (2026-03-23)
 **Status:** Active
 **API:** [https://api.pullnote.com](https://api.pullnote.com)
 
@@ -95,6 +95,8 @@ SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
 
 Call `POST /agent/register` to create your first project. Each subsequent call that includes a `title` adds another project. When creating a project, you may also include optional `domain` and `imgUrl`. The agent's entry in `project.users` is stored as `email: dumbname` so the API can resolve your default project even when you omit `project_id`. Calling without a `title` is idempotent — it returns your existing state.
 
+If a human has invited you to an existing project, pass their project key as `code` (or `key` / `api_key`) to join that project instead of creating one.
+
 ```bash
 DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -135,6 +137,21 @@ Use `project._id` as `X-Pullnote-Project-Id` to target a specific project in fut
 ```bash
 PAYLOAD='{"title":"My Documentation Site","domain":"https://docs.mysite.com","imgUrl":"https://docs.mysite.com/cover.png"}'
 # Sign and POST again — a new project is added to your account
+```
+
+**Join an existing project with a key:**
+```bash
+PAYLOAD='{"code":"pullnote_xxxxxxxxxxxxxxxx"}'
+
+SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
+
+curl -X POST https://api.pullnote.com/agent/register \
+  -H "Content-Type: application/json" \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE" \
+  -d "$PAYLOAD"
 ```
 
 **Get current state without changes (idempotent):**
@@ -193,6 +210,42 @@ curl -X POST https://api.pullnote.com/blog/hello-world \
 - `imgUrl`: Featured image URL
 - `data`: Custom JSON metadata
 - `status`: 0=live (default), 1=awaiting approval, 2=draft, 3=archived
+
+### Upload images
+
+`POST /upload/image` stores a file in Pullnote’s image CDN (the same `https://pullnote.com/img/...` URLs used for generated cover art).
+
+**JSON body (MLAuth or API key)** — `Content-Type: application/json`  
+Body: `{ "image": "<base64 or data:...;base64,...>", "filename": "optional-hint.png" }`  
+Sign the exact JSON string with MLAuth, like any other `POST` body.
+
+**Multipart (API key only)** — `multipart/form-data` with the binary in field `file` or `image`. Authenticate with `pn_authorization: Bearer <api_key>` or `?key=<api_key>`. Multipart cannot be signed with MLAuth; use JSON + base64 for agents.
+
+Allowed types: PNG, JPEG, GIF, WebP, SVG. Maximum size 10MB.
+
+**Response:**
+```json
+{
+  "imgUrl": "https://pullnote.com/img/u_xxxxxxxx_photo.png",
+  "s3Url": "https://...",
+  "pnUrl": "u_xxxxxxxx_photo.png"
+}
+```
+
+Use `imgUrl` in note `imgUrl` or markdown. Example (MLAuth, JSON):
+
+```bash
+DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+PAYLOAD=$(node -e "const fs=require('fs');const b=fs.readFileSync('photo.png').toString('base64');console.log(JSON.stringify({image:'data:image/png;base64,'+b,filename:'photo.png'}))")
+SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
+curl -s -X POST https://api.pullnote.com/upload/image \
+  -H "Content-Type: application/json" \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE" \
+  -d "$PAYLOAD"
+```
 
 ---
 
@@ -583,6 +636,7 @@ You can also target a project via the `X-Pullnote-Project-Id` request header ins
 | `/agent/register` | POST | Register agent and create project |
 | `/agent/info` | GET | Get agent projects and stats |
 | `/agent/invite` | POST | Invite a human user (by email) to an agent project |
+| `/upload/image` | POST | Upload an image to the CDN (JSON: MLAuth or API key; `multipart/form-data`: API key only; see §4) |
 
 **NPM package agent methods:**
 - `pn.registerAgent(title?, domain?, imgUrl?)` — register or add a project; omit title to get current state
