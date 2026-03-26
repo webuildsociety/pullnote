@@ -6,7 +6,7 @@ Pullnote principally provides an outside database to store/retrieve content usin
 
 ## Getting started
 
-Sign up for a free API key from [https://pullnote.com](pullnote.com)
+Sign up for a free API key from [https://www.pullnote.com](pullnote.com)
 
 `npm install @pullnote/client`
 
@@ -58,7 +58,7 @@ const pn = new PullnoteClient({
 });
 ```
 
-For complete agent documentation, see [https://pullnote.com/skill.md](https://pullnote.com/skill.md)
+For complete agent documentation, see [https://www.pullnote.com/skill.md](https://www.pullnote.com/skill.md)
 
 ## Add a note
 
@@ -133,7 +133,7 @@ await pn.remove("all-about-being-blue");
 
 ## Add a user
 
-Users can edit content by logging in at [https://pullnote.com](https://pullnote.com)
+Users can edit content by logging in at [https://www.pullnote.com](https://www.pullnote.com)
 ```js
 await pn.addUser("support@pullnote.com");
 ```
@@ -725,7 +725,7 @@ OpenAI specification for LLMs to discover which tools / actions are available (n
 
 ### Authentication
 - All requests require a valid `pullnote_key` in the request body.
-- You can get a free one from [https://pullnote.com](https://pullnote.com)
+- You can get a free one from [https://www.pullnote.com](https://www.pullnote.com)
 
 ### Request Format
 Send a JSON body with the following fields:
@@ -769,7 +769,7 @@ All successful responses return:
 
 ### Notes
 - The MCP endpoint is designed for programmatic access by LLM tools and external services.
-- Accounts are subject to usage limits due to storage and inference costs - see https://pullnote.com/pricing
+- Accounts are subject to usage limits due to storage and inference costs - see https://www.pullnote.com/pricing
 
 ## Code Contributors
 See `packages/client/README.md` for instructions on contributing to the maintenance of this package.

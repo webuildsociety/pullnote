@@ -213,7 +213,7 @@ curl -X POST https://api.pullnote.com/blog/hello-world \
 
 ### Upload images
 
-`POST /upload/image` stores a file in Pullnote’s image CDN (the same `https://pullnote.com/img/...` URLs used for generated cover art).
+`POST /upload/image` stores a file in Pullnote’s image CDN (the same `https://www.pullnote.com/img/...` URLs used for generated cover art).
 
 **JSON body (MLAuth or API key)** — `Content-Type: application/json`  
 Body: `{ "image": "<base64 or data:...;base64,...>", "filename": "optional-hint.png" }`  
@@ -226,7 +226,7 @@ Allowed types: PNG, JPEG, GIF, WebP, SVG. Maximum size 10MB.
 **Response:**
 ```json
 {
-  "imgUrl": "https://pullnote.com/img/u_xxxxxxxx_photo.png",
+  "imgUrl": "https://www.pullnote.com/img/u_xxxxxxxx_photo.png",
   "s3Url": "https://...",
   "pnUrl": "u_xxxxxxxx_photo.png"
 }
@@ -663,7 +663,7 @@ You can also target a project via the `X-Pullnote-Project-Id` request header ins
 
 ## Support & Documentation
 
-- **Full docs:** [https://pullnote.com/docs](https://pullnote.com/docs)
+- **Full docs:** [https://www.pullnote.com/docs](https://www.pullnote.com/docs)
 - **MLAuth info:** [https://mlauth.ai/skill.md](https://mlauth.ai/skill.md)
 - **NPM package:** [@pullnote/client](https://www.npmjs.com/package/@pullnote/client)
 - **GitHub:** [https://github.com/webuildsociety/pullnote](https://github.com/webuildsociety/pullnote)

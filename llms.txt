@@ -168,6 +168,6 @@ for (const article of articles) {
 ## External Resources
 
 - [NPM Repository](https://github.com/webuildsociety/pullnote): Repository and source code for the client NPM package
-- [Pullnote Website](https://pullnote.com): Account management and human editor
-- [API Pricing](https://pullnote.com/pricing): Usage limits and pricing
+- [Pullnote Website](https://www.pullnote.com): Account management and human editor
+- [API Pricing](https://www.pullnote.com/pricing): Usage limits and pricing
 - [OpenAPI Spec](https://api.pullnote.com/openapi.json): Machine-readable API specification 

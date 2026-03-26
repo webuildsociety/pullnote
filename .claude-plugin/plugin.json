@@ -1,0 +1,13 @@
+{
+  "name": "pullnote",
+  "description": "Connect Claude to Pullnote CMS to read and edit website or app content conversationally. Use when the user mentions Pullnote, wants to update website pages, edit copy, manage blog posts, or work with any content stored in Pullnote.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Pullnote",
+    "email": "support@pullnote.com"
+  },
+  "homepage": "https://www.pullnote.com",
+  "repository": "https://github.com/webuildsociety/pullnote",
+  "license": "MIT",
+  "keywords": ["cms", "content", "headless", "website", "editing", "pullnote"]
+}
