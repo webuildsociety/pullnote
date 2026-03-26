@@ -14,11 +14,9 @@ Recipes and workflows: https://www.pullnote.com/recipes.md
 
 ## Authentication
 
-There are two ways to authenticate. Use whichever applies to the current context.
+Choose the method that fits your context. Try them in this order.
 
-### Option A — API Key (simplest, for most users)
-
-If the user has provided a `PULLNOTE_API_KEY` or similar, use it as a Bearer token:
+### 1. API Key (simplest — use if the user or project provides one)
 
 ```bash
 curl -H "pn_authorization: Bearer $PULLNOTE_API_KEY" https://api.pullnote.com/about
@@ -29,9 +27,68 @@ Or with the npm client:
 const pn = new PullnoteClient(process.env.PULLNOTE_API_KEY);
 ```
 
-### Option B — MLAuth (for agents with cryptographic identity)
+If the user hasn't mentioned an API key, ask: "Do you have a Pullnote API key for this project?"
 
-If you have MLAuth keys set up (`~/.mlauth/private.pem`, `~/.mlauth/dumbname.txt`), sign requests:
+### 2. MLAuth (agent identity — use if no API key is available)
+
+MLAuth lets you authenticate with a persistent cryptographic identity instead of an API key. Check if you already have one:
+
+```bash
+if [ -f ~/.mlauth/private.pem ] && [ -f ~/.mlauth/dumbname.txt ]; then
+  echo "MLAuth identity exists: $(cat ~/.mlauth/dumbname.txt)"
+else
+  echo "No MLAuth identity — need to set one up"
+fi
+```
+
+#### Setting up MLAuth (one-time, if no identity exists)
+
+```bash
+# 1. Create store and generate ECDSA keypair
+mkdir -p ~/.mlauth && chmod 700 ~/.mlauth
+openssl ecparam -name secp256k1 -genkey -noout -out ~/.mlauth/private.pem
+openssl ec -in ~/.mlauth/private.pem -pubout -out ~/.mlauth/public.pem 2>/dev/null
+chmod 600 ~/.mlauth/private.pem
+
+# 2. Register with mlauth.ai
+PUBLIC_KEY=$(awk '{printf "%s\\n", $0}' ~/.mlauth/public.pem)
+RESPONSE=$(curl -s -X POST https://mlauth.ai/api/register \
+  -H "Content-Type: application/json" \
+  -d "{\"public_key\": \"$PUBLIC_KEY\", \"bio\": \"AI agent using Pullnote for content management\"}")
+echo "$RESPONSE"
+
+# 3. Save the assigned dumbname
+DUMBNAME=$(echo "$RESPONSE" | grep -o '"dumbname":"[^"]*"' | cut -d'"' -f4)
+echo "$DUMBNAME" > ~/.mlauth/dumbname.txt
+echo "Registered as: $DUMBNAME"
+```
+
+#### Registering with Pullnote (one-time, after MLAuth identity exists)
+
+```bash
+DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+PAYLOAD='{"title":"Project Name"}'
+
+SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
+  openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
+
+curl -X POST https://api.pullnote.com/agent/register \
+  -H "Content-Type: application/json" \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE" \
+  -d "$PAYLOAD"
+# Response includes project._id and project.api_key
+```
+
+To join an existing project with a key instead of creating one:
+```bash
+PAYLOAD='{"code":"pullnote_xxxxxxxxxxxxxxxx"}'
+# Sign and POST as above
+```
+
+#### Signing subsequent requests (MLAuth)
 
 ```bash
 DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
@@ -40,16 +97,16 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # For POST/PATCH/DELETE: PAYLOAD = the JSON body string
 SIGNATURE=$(echo -n "${DUMBNAME}${TIMESTAMP}${PAYLOAD}" | \
   openssl dgst -sha256 -sign ~/.mlauth/private.pem | openssl base64 -A)
-# Then add headers: X-Mlauth-Dumbname, X-Mlauth-Timestamp, X-Mlauth-Signature
+# Add headers: X-Mlauth-Dumbname, X-Mlauth-Timestamp, X-Mlauth-Signature
 ```
 
-> Use `openssl base64 -A` (not system `base64`) — system base64 wraps at 76 chars, breaking the signature.
-
-If no MLAuth keys exist, follow the setup in https://www.pullnote.com/skill.md §1.
+> Always use `openssl base64 -A` (not system `base64`) — system base64 wraps at 76 chars, breaking the signature.
 
 ---
 
 ## Key Operations
+
+All examples below use API key auth for brevity. For MLAuth, replace the `pn_authorization` header with the three `X-Mlauth-*` headers shown above.
 
 ### Get content
 ```bash
@@ -84,6 +141,16 @@ curl -X DELETE https://api.pullnote.com/blog/old-post \
 ```bash
 curl -H "pn_authorization: Bearer $KEY" "https://api.pullnote.com/blog?list=1"
 # Returns: { children[], siblings[], parent, self }
+```
+
+### Upload an image
+```bash
+# JSON body (works with MLAuth or API key):
+curl -X POST https://api.pullnote.com/upload/image \
+  -H "pn_authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"image":"data:image/png;base64,...","filename":"photo.png"}'
+# Returns: { imgUrl, s3Url, pnUrl }
 ```
 
 ---
@@ -122,13 +189,24 @@ curl -X PATCH "https://api.pullnote.com/about%23hero" \
 
 When a user asks to edit a page (e.g. "make the about page more professional"):
 
-1. **GET the current content** — fetch the path to see what's there
-2. **Read the content** — understand the current text and any blocks
-3. **Rewrite** — produce improved markdown
-4. **PATCH** — update the full content, or a specific block if only one section needs changing
-5. **Confirm** — tell the user what changed
+1. **GET the current content** at the path to see what's there
+2. **Read the content** and understand the current text and any blocks
+3. **Rewrite** the content (or specific block) to match what the user wants
+4. **PATCH** the full content, or a specific block if only one section needs changing
+5. **Confirm** to the user what changed
 
-If the user hasn't provided an API key, ask: "Do you have a Pullnote API key for this project?"
+---
+
+## Invite a human editor
+
+Once you have a project, you can invite a human collaborator by email:
+
+```bash
+PAYLOAD='{"email":"human@example.com","role":"editor"}'
+# Sign and POST to https://api.pullnote.com/agent/invite
+```
+
+They'll be added to the project and can edit content via the pullnote.com web editor.
 
 ---
 
@@ -154,4 +232,5 @@ const pn = new PullnoteClient(process.env.PULLNOTE_API_KEY);
 const note = await pn.get('/about');
 await pn.update('/about', { content: '# About Us\n\nNew content...' });
 const posts = await pn.list('/blog'); // { children[], ... }
+await pn.inviteUser('human@example.com'); // invite a human editor
 ```
