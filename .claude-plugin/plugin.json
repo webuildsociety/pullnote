@@ -1,7 +1,7 @@
 {
   "name": "pullnote",
   "description": "Connect Claude to Pullnote CMS to read and edit website or app content conversationally. Use when the user mentions Pullnote, wants to update website pages, edit copy, manage blog posts, or work with any content stored in Pullnote.",
-  "version": "1.0.0",
+  "version": "0.4.8",
   "author": {
     "name": "Pullnote",
     "email": "support@pullnote.com"

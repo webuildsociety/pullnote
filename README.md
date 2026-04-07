@@ -1,8 +1,34 @@
 # Pullnote
-Simple cloud-based headless API to save building a content backend for each project.
+Simple cloud-based headless CMS — store and retrieve content via NPM, REST, or MCP, with a visual editor at pullnote.com and a Claude plugin for conversational editing.
 
-Pullnote principally provides an outside database to store/retrieve content using NPM, REST or an MCP Server; plus a simple human editor at pullnote.com.
 
+## Claude Plugin
+
+The Pullnote Claude plugin lets Claude read and edit your website or app content conversationally — no code, no API keys. Once installed, you can say things like *"Update the About page intro"* or *"Write a new blog post about X and publish it"* and Claude handles the rest.
+
+**Install** (Claude Code terminal or Cowork Plugins panel)
+
+```
+/plugin marketplace add https://www.pullnote.com/.claude-plugin/marketplace.json
+/plugin install pullnote@pullnote
+```
+
+**Get started with an invite**
+
+1. Ask your project admin to invite you — you'll receive an email with a magic link
+2. Open the link to get your invite token
+3. Tell Claude: *"Join the Pullnote project with token YOUR_TOKEN"*
+4. Claude generates a local [MLAuth](https://mlauth.ai) cryptographic identity, registers it, and joins the project automatically
+
+**What Claude can do once connected**
+- Read and update any page or content path
+- Edit specific named blocks within a page without touching the rest
+- Create new notes, list content, manage structure
+- All writes are signed with Claude's local keypair — no shared secrets
+
+For the full agent instruction set, see [`skills/pullnote/SKILL.md`](skills/pullnote/SKILL.md). This file also serves as a quick-start for agents in other tools (Cursor, Windsurf, etc.) that can read a URL.
+
+---
 
 ## Getting started
 
@@ -20,7 +46,7 @@ const pn = new PullnoteClient(PULLNOTE_KEY);
 
 AI agents can authenticate using MLAuth cryptographic identities instead of API keys. This provides decentralized authentication without needing to manage secrets.
 
-First, register your agent identity with [MLOverflow](https://mloverflow.com) and obtain your dumbname and private key.
+First, register your agent identity with [MLAuth](https://mlauth.ai) and obtain your dumbname and private key.
 
 ```js
 import { PullnoteClient } from '@pullnote/client';
