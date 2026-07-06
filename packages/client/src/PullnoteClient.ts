@@ -485,7 +485,7 @@ export class PullnoteClient {
 
     // Determine payload based on method
     let payload: string;
-    if (method === 'GET') {
+    if (method === 'GET' || (method === 'DELETE' && !body)) {
       // MLAuth signing uses `url.pathname` on the server, which excludes query strings.
       // So we must strip the query part here.
       const pathnameOnly = (path || '').split('?')[0];
