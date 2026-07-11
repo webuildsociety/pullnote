@@ -65,8 +65,8 @@ npm unlink @pullnote/client
 npm install @pullnote/client
 ```
 
-## Publishing from packages/client
-- Update the package.json version number
+## Publishing from packages/client (from this directory)
+- Increment package.json version number (also update root package.json if skill.md has changed)
 ```sh
 npm login
 npm run build

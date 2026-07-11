@@ -1,6 +1,7 @@
 export type Note = {
   _id?: string;
   project_id?: string;
+  path?: string;
   title?: string;
   description?: string;
   content?: string;
@@ -15,6 +16,18 @@ export type Note = {
   author?: string;
   data?: Record<string, any>;
   index?: number;
+  redirects?: string[];
+  status?: number;
+};
+
+export type Redirect = {
+  _id?: string;
+  project_id?: string;
+  from_path?: string;
+  to_path?: string;
+  to_note_id?: string;
+  created?: number;
+  modified?: number;
 };
 
 export type MlauthCredentials = {
@@ -134,16 +147,21 @@ export class PullnoteClient {
     return this._cacheDoc;
   }
 
-  // Delete a note. Note: path will overwrite any note.path passed
-  async remove(path: string) {
+  // Delete a note. Pass redirect_to to transfer redirects before delete.
+  async remove(path: string, redirect_to?: string) {
     path = path || this._cacheDoc?._path;
-    const res = await this._request('DELETE', path);
+    let requestPath = path;
+    if (redirect_to) {
+      const query = `redirect_to=${encodeURIComponent(redirect_to.replace(/^\//, ''))}`;
+      requestPath = path.includes('?') ? `${path}&${query}` : `${path}?${query}`;
+    }
+    const res = await this._request('DELETE', requestPath);
     this._clearCache();
     return res?.success;
   }
 
-  async delete(path: string) {
-    return this.remove(path);
+  async delete(path: string, redirect_to?: string) {
+    return this.remove(path, redirect_to);
   }
 
   // Generate a new note using a prompt.
@@ -187,6 +205,38 @@ export class PullnoteClient {
   // Shorthand to update the data associated with a note.
   async setData(path: string, data: Record<string, any>) {
     return await this.update(path, {data});
+  }
+
+  // List old paths that redirect to this note.
+  async getRedirects(path: string) {
+    const res = await this._request('GET', 'redirects', { path: path.replace(/^\//, '') });
+    return res?.redirects ?? [];
+  }
+
+  // Replace all redirects for a note.
+  async syncRedirects(path: string, redirects: string[]) {
+    const res = await this._request('PATCH', 'redirects', {
+      path: path.replace(/^\//, ''),
+      redirects
+    });
+    return res?.redirects ?? [];
+  }
+
+  // Add a single redirect to a note.
+  async addRedirect(path: string, fromPath: string) {
+    return this._request('POST', 'redirects', {
+      path: path.replace(/^\//, ''),
+      from_path: fromPath.replace(/^\//, '')
+    });
+  }
+
+  // Remove a redirect by its old path.
+  async removeRedirect(fromPath: string) {
+    const res = await this._request(
+      'DELETE',
+      `redirects?from_path=${encodeURIComponent(fromPath.replace(/^\//, ''))}`
+    );
+    return res?.success === 1;
   }
 
   // Get any image URL associated with a note.

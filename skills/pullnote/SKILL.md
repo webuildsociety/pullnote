@@ -240,7 +240,10 @@ PAYLOAD='{"email":"human@example.com","role":"editor"}'
 | `description` | SEO meta description |
 | `imgUrl` | Featured image URL |
 | `data` | Custom JSON metadata |
+| `redirects` | Old paths stored in the `redirects` collection (not on the note doc) |
 | `status` | 0=live, 1=awaiting, 2=draft, 3=archived |
+
+**Redirects:** use `/redirects` or `pn.addRedirect()`. After renaming `/blog/old` → `/blog/new`, add `blog/old` pointing at the new path. `?ping=1` on the old path returns `{ redirect: "blog/new", status: 301 }`. Delete with `?redirect_to=` to transfer redirect chains.
 
 ---
 

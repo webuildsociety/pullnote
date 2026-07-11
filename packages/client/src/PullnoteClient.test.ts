@@ -287,4 +287,28 @@ describe('PullnoteClient', () => {
     }
   });
 
+  it('getRedirects should call /redirects endpoint (unit)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        path: 'blog/new-slug',
+        redirects: ['blog/old-slug']
+      })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      vi.resetModules();
+      const { PullnoteClient: PullnoteClientLocal } = await import('./PullnoteClient.js');
+      const pnLocal = new PullnoteClientLocal('dummy_api_key', 'https://example.com');
+      const redirects = await pnLocal.getRedirects('/blog/new-slug');
+      const calledUrl = (fetchMock as any).mock.calls?.[0]?.[0] as string | undefined;
+      expect(calledUrl).toContain('/redirects');
+      expect(calledUrl).toContain('path=blog%2Fnew-slug');
+      expect(redirects).toEqual(['blog/old-slug']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
 }); 

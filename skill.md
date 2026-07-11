@@ -209,6 +209,7 @@ curl -X POST https://api.pullnote.com/blog/hello-world \
 - `description`: SEO description
 - `imgUrl`: Featured image URL
 - `data`: Custom JSON metadata
+- `redirects`: Old paths that resolve to this note (stored in a separate `redirects` collection; set via `PATCH /{path}` or `/redirects`)
 - `status`: 0=live (default), 1=awaiting approval, 2=draft, 3=archived
 
 ### Upload images
@@ -385,6 +386,7 @@ curl "https://api.pullnote.com/blog/hello-world?ping=1" \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
+# If the path was moved: { msg: "Note moved", redirect: "new/path", status: 301, found: 0 }
 ```
 
 ---
@@ -563,6 +565,22 @@ await pn.setData('/blog/my-post', {
 const metadata = await pn.getData('/blog/my-post');
 ```
 
+**Redirects (when renaming or moving a note):**
+```typescript
+// Preferred: dedicated redirects API
+await pn.addRedirect('/blog/new-slug', 'blog/old-slug');
+const redirects = await pn.getRedirects('/blog/new-slug');
+
+// Compatibility: still works via note PATCH
+await pn.update('/blog/new-slug', { redirects: ['blog/old-slug'] });
+
+const ping = await pn.ping('/blog/old-slug');
+// { msg: "Note moved", redirect: "blog/new-slug", status: 301, found: 0 }
+
+// Delete with redirect transfer (preserves redirect chains)
+await pn.remove('/blog/old-page', 'blog/new-slug');
+```
+
 **Sitemap generation:**
 ```typescript
 const xml = await pn.getSitemap('https://mysite.com');
@@ -588,6 +606,8 @@ const breadcrumbs = await pn.getBreadcrumbs('/blog/2026/my-post');
 - Group related content under common paths
 - Use `index` field for custom ordering
 - Store metadata in the `data` field
+- When renaming a path, add the old path via `addRedirect()` or `/redirects`
+- Deleting a note with redirects requires `redirect_to` to transfer them first
 
 **Security:**
 - Keep your `~/.mlauth/private.pem` secure
@@ -648,7 +668,11 @@ You can also target a project via the `X-Pullnote-Project-Id` request header ins
 | `/{path}` | GET | Retrieve note or list/search |
 | `/{path}` | POST | Create note |
 | `/{path}` | PATCH | Update note |
-| `/{path}` | DELETE | Delete note |
+| `/{path}` | DELETE | Delete note (`?redirect_to=` transfers redirects first) |
+| `/redirects` | GET | List redirects for a note (`?path=`) |
+| `/redirects` | POST | Add redirect (`{ path, from_path }`) |
+| `/redirects` | PATCH | Replace redirects for a note (`{ path, redirects }`) |
+| `/redirects` | DELETE | Remove redirect (`?from_path=`) |
 
 **Query parameters (GET):**
 - `format=html|md` - Response format
