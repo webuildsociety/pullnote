@@ -141,12 +141,24 @@ curl -X POST https://api.pullnote.com/blog/my-new-post \
 ### Delete content
 ```bash
 PAYLOAD="/blog/old-post"
-# Sign the path, then:
+# Sign the path (not the query string), then:
 curl -X DELETE https://api.pullnote.com/blog/old-post \
   -H "X-Mlauth-Dumbname: $DUMBNAME" \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
 ```
+
+### Merge / redirect on delete (preferred)
+Transfers inbound redirects and creates `source → dest` in one step:
+```bash
+PAYLOAD="/blog/old-post"
+# Sign the path only, then:
+curl -X DELETE "https://api.pullnote.com/blog/old-post?redirect_to=blog/new-slug" \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE"
+```
+Or with the npm client: `await pn.remove('/blog/old-post', 'blog/new-slug')`.
 
 ### List children of a path
 ```bash
@@ -243,7 +255,7 @@ PAYLOAD='{"email":"human@example.com","role":"editor"}'
 | `redirects` | Old paths stored in the `redirects` collection (not on the note doc) |
 | `status` | 0=live, 1=awaiting, 2=draft, 3=archived |
 
-**Redirects:** use `/redirects` or `pn.addRedirect()`. After renaming `/blog/old` → `/blog/new`, add `blog/old` pointing at the new path. `?ping=1` on the old path returns `{ redirect: "blog/new", status: 301 }`. Delete with `?redirect_to=` to transfer redirect chains.
+**Redirects:** prefer `DELETE /source?redirect_to=dest` (or `pn.remove(source, dest)`) — transfers inbound redirects and creates `source → dest`. After a rename (`PATCH` with a new `path`), add the freed path via `POST /redirects` / `pn.addRedirect()`. Do not `PATCH dest { redirects: [source] }` while source still exists (409). `?ping=1` on a moved path returns `{ redirect: "dest", status: 301 }`.
 
 ---
 

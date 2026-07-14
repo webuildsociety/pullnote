@@ -209,7 +209,7 @@ curl -X POST https://api.pullnote.com/blog/hello-world \
 - `description`: SEO description
 - `imgUrl`: Featured image URL
 - `data`: Custom JSON metadata
-- `redirects`: Old paths that resolve to this note (stored in a separate `redirects` collection; set via `PATCH /{path}` or `/redirects`)
+- `redirects`: Old paths that resolve to this note (stored in a separate `redirects` collection; prefer `DELETE ?redirect_to=` or `/redirects`)
 - `status`: 0=live (default), 1=awaiting approval, 2=draft, 3=archived
 
 ### Upload images
@@ -339,7 +339,7 @@ PAYLOAD='{"path":"/blog/renamed-post"}'
 
 ## 7. Delete Content
 
-Remove notes with DELETE:
+Remove notes with DELETE. Sign the path (same as GET):
 
 ```bash
 DUMBNAME=$(cat ~/.mlauth/dumbname.txt)
@@ -354,6 +354,19 @@ curl -X DELETE https://api.pullnote.com/blog/hello-world \
   -H "X-Mlauth-Timestamp: $TIMESTAMP" \
   -H "X-Mlauth-Signature: $SIGNATURE"
 ```
+
+**Merge / redirect on delete (preferred):** pass `?redirect_to=` to transfer inbound redirects and create `source → dest` in one step. Sign the path only (not the query string):
+
+```bash
+PAYLOAD="/blog/old-page"
+# ... sign as above ...
+curl -X DELETE "https://api.pullnote.com/blog/old-page?redirect_to=blog/new-slug" \
+  -H "X-Mlauth-Dumbname: $DUMBNAME" \
+  -H "X-Mlauth-Timestamp: $TIMESTAMP" \
+  -H "X-Mlauth-Signature: $SIGNATURE"
+```
+
+If the note has inbound redirects and you omit `redirect_to`, delete is refused. `DELETE` on a redirect-only path (no note) removes that redirect.
 
 ---
 
@@ -433,6 +446,7 @@ const posts = await pn.find('/blog', {}, 'created', -1);
 
 // Delete
 await pn.remove('/blog/my-post');
+// Or merge onto another path: await pn.remove('/blog/old', 'blog/new');
 
 // Get agent info — returns all your projects
 const info = await pn.getAgentInfo();
@@ -565,21 +579,22 @@ await pn.setData('/blog/my-post', {
 const metadata = await pn.getData('/blog/my-post');
 ```
 
-**Redirects (when renaming or moving a note):**
+**Redirects (preferred via DELETE):**
 ```typescript
-// Preferred: dedicated redirects API
+// Merge or retire a note: transfer inbound redirects + create source→dest
+await pn.remove('/blog/old-page', 'blog/new-slug');
+// Equivalent: DELETE /blog/old-page?redirect_to=blog/new-slug
+
+// Rename in place (keep the note, free the old path, then add redirect)
+await pn.update('/blog/old-slug', { path: 'blog/new-slug' });
 await pn.addRedirect('/blog/new-slug', 'blog/old-slug');
+
 const redirects = await pn.getRedirects('/blog/new-slug');
-
-// Compatibility: still works via note PATCH
-await pn.update('/blog/new-slug', { redirects: ['blog/old-slug'] });
-
 const ping = await pn.ping('/blog/old-slug');
 // { msg: "Note moved", redirect: "blog/new-slug", status: 301, found: 0 }
-
-// Delete with redirect transfer (preserves redirect chains)
-await pn.remove('/blog/old-page', 'blog/new-slug');
 ```
+
+**Note:** Do not `PATCH dest { redirects: [source] }` while `source` still exists — that returns **409**. Use `DELETE source?redirect_to=dest` instead.
 
 **Sitemap generation:**
 ```typescript
@@ -606,8 +621,9 @@ const breadcrumbs = await pn.getBreadcrumbs('/blog/2026/my-post');
 - Group related content under common paths
 - Use `index` field for custom ordering
 - Store metadata in the `data` field
-- When renaming a path, add the old path via `addRedirect()` or `/redirects`
-- Deleting a note with redirects requires `redirect_to` to transfer them first
+- To merge or retire a note onto another path: `DELETE /source?redirect_to=dest` (preferred)
+- Notes with inbound redirects cannot be deleted without `redirect_to`
+- After a rename (`PATCH` with a new `path`), add the old path via `addRedirect()` / `POST /redirects`
 
 **Security:**
 - Keep your `~/.mlauth/private.pem` secure
@@ -668,9 +684,9 @@ You can also target a project via the `X-Pullnote-Project-Id` request header ins
 | `/{path}` | GET | Retrieve note or list/search |
 | `/{path}` | POST | Create note |
 | `/{path}` | PATCH | Update note |
-| `/{path}` | DELETE | Delete note (`?redirect_to=` transfers redirects first) |
+| `/{path}` | DELETE | Delete note (`?redirect_to=` merges/redirects); or remove redirect-only path |
 | `/redirects` | GET | List redirects for a note (`?path=`) |
-| `/redirects` | POST | Add redirect (`{ path, from_path }`) |
+| `/redirects` | POST | Add redirect (`{ path, from_path }`) — from_path must not be a live note |
 | `/redirects` | PATCH | Replace redirects for a note (`{ path, redirects }`) |
 | `/redirects` | DELETE | Remove redirect (`?from_path=`) |
 
