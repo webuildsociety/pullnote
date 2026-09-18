@@ -204,9 +204,9 @@ curl -X POST https://api.pullnote.com/blog/hello-world \
 ```
 
 **Available fields:**
-- `title`: Note title
+- `title`: Page title as plain text (no markdown)
 - `content` or `content_md`: Markdown content
-- `description`: SEO description
+- `description`: SEO meta description as plain text. Set it explicitly; write as the offer itself, not a summary of the note. No markdown.
 - `imgUrl`: Featured image URL
 - `data`: Custom JSON metadata
 - `redirects`: Old paths that resolve to this note (stored in a separate `redirects` collection; prefer `DELETE ?redirect_to=` or `/redirects`)

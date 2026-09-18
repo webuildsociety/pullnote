@@ -247,9 +247,9 @@ PAYLOAD='{"email":"human@example.com","role":"editor"}'
 
 | Field | Purpose |
 |---|---|
-| `title` | Page/post title |
+| `title` | Page title as plain text (no markdown) |
 | `content` | Markdown body |
-| `description` | SEO meta description |
+| `description` | SEO meta description as plain text. Set explicitly; write as the offer, not a summary of the note |
 | `imgUrl` | Featured image URL |
 | `data` | Custom JSON metadata |
 | `redirects` | Old paths stored in the `redirects` collection (not on the note doc) |
