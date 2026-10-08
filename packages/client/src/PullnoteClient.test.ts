@@ -247,6 +247,27 @@ describe('PullnoteClient', () => {
     }
   });
 
+  it('getMd/getHtml should return empty string when note is missing (unit)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 404,
+      json: async () => ({ message: 'Note not found: missing/path' })
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      vi.resetModules();
+      const { PullnoteClient: PullnoteClientLocal } = await import('./PullnoteClient.js');
+      const pnLocal = new PullnoteClientLocal('dummy_api_key', 'https://example.com');
+
+      await expect(pnLocal.getMd('missing/path')).resolves.toBe('');
+      await expect(pnLocal.getHtml('missing/path')).resolves.toBe('');
+      await expect(pnLocal.get('missing/path')).resolves.toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('registerAgent should send join code payload (unit)', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,

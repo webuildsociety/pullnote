@@ -177,13 +177,13 @@ export class PullnoteClient {
   // Get the content of a note as markdown
   async getMd(path: string) {
     const doc = await this.get(path, 'md');
-    return doc.content;
+    return doc?.content ?? "";
   }
 
   // Get the content of a note as HTML
   async getHtml(path: string) {
     const doc = await this.get(path, 'html');
-    return doc.content;
+    return doc?.content ?? "";
   }
 
   async getTitle(path: string) {
